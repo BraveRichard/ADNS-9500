@@ -1,0 +1,32 @@
+
+BL51 BANKED LINKER/LOCATER V5.11 - SN: K1CWP-64835E
+COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2004
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F3xx_USB0_Descriptor.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F3xx_USB0_InterruptServiceRoutine.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\STARTUP.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F3xx_USB0_Main.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F3xx_USB0_Standard_Requests.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F3xx_USB0_ReportHandler.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\ADNS9500.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\delay.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\sequence.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\spi.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\timer.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F340_FlashPrimitives.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F3xx_USB0_Mouse.obj",
+"E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\crc_check.obj"  TO "E:\MyWork\Mouse\A3433M-A9500_Full_Speed_USB_Corded_Reference_Design_NRD1101\Souce_Code\Firmware\A3433M_NRD1101_V2_8_Full_Spd\C8051F347\F320_USB0_Mouse" RS(256) PL(68) PW(78) 
+
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_REPORTHANDLER_IN_ISR?F3XX_USB0_REPORTHANDLER
+
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_REPORTHANDLER_IN_FOREGROUND?F3XX_USB0_REPORTHANDLER
+
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?READ_SENSOR_MOTION_REGISTERS?SEQUENCE
+
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?TIMER0INIT?TIMER
+
+Program Size: data=113.5 xdata=895 code=13262
+LINK/LOCATE RUN COMPLETE.  4 WARNING(S),  0 ERROR(S)

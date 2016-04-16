@@ -1,0 +1,1655 @@
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE SEQUENCE
+OBJECT MODULE PLACED IN sequence.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe sequence.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          /*
+   2          ###############################################################################
+   3          @copyright                      :       Affinext Technology Sdn Bhd.
+   4          @filename                       :       Sequence.C
+   5          @version                        :       1.0.0
+   6          Programmer(s)           :       cc looi
+   7          Created                         :       23/05/2005
+   8          Description             :       Sequence/business implemention file
+   9                           
+  10          Modified History        :       Description             
+  11          27/01/2005                              Initial created. 
+  12          03/02/2005                              Modified for project used)
+  13          09/09/08                                Electrical Fast Transient Burst Added(WTD)
+  14          
+  15          ###############################################################################
+  16          */
+  17          
+  18          //------------------------------------------------------------------------------------
+  19          // Includes
+  20          //------------------------------------------------------------------------------------
+  21          #include "c8051f3xx.h"
+  22          #include <stdio.h>
+  23          #include <stdlib.h>
+  24          #include <string.h>
+  25          #include <intrins.h>
+  26          #include <stdlib.h>
+  27          #include "spi.h"
+  28          #include "timer.h"
+  29          #include "F3xx_USB0_InterruptServiceRoutine.h"
+  30          #include "F3xx_USB0_ReportHandler.h"
+  31          #include "F3xx_USB0_Mouse.h"
+  32          #include "ADNS9500.h"
+  33          #include "F340_FlashPrimitives.h"
+  34          #include "delay.h"
+  35          #include "crc_check.h"
+  36          
+  37          
+  38                  ////////////////////////////////////////////////////////////////////////////
+  39                  // User Code Here: Add business logic 
+  40                  ////////////////////////////////////////////////////////////////////////////
+  41                  ////////////////////////////////////////////////////////////////////////////
+  42                  // End User Code 
+  43                  ////////////////////////////////////////////////////////////////////////////
+  44          
+  45          #define SW_DELAY        2
+  46          #define SW_DELAY_2      50
+  47          
+  48          //------------------------------------------------------------------------------------
+  49          // Global VARIABLES
+  50          //------------------------------------------------------------------------------------
+  51          unsigned char data seq0_state, seq1_state, seq2_state, seq3_state, seq4_state;
+  52          unsigned char data seq5_state, seq6_state, seq7_state, seq8_state, seq9_state;
+  53          unsigned char data seq10_state, seq11_state, seq12_state, led_blink_state;
+  54          
+  55          bdata unsigned char dummy1_bit;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 2   
+
+  56          sbit dummy1_bit7 = dummy1_bit^7;
+  57          sbit dummy1_bit6 = dummy1_bit^6;
+  58          sbit dummy1_bit5 = dummy1_bit^5;
+  59          sbit dummy1_bit4 = dummy1_bit^4;
+  60          sbit dummy1_bit3 = dummy1_bit^3;
+  61          sbit dummy1_bit2 = dummy1_bit^2;
+  62          sbit dummy1_bit1 = dummy1_bit^1;
+  63          sbit dummy1_bit0 = dummy1_bit^0;
+  64          
+  65          unsigned char sent_buttons;
+  66          
+  67          bdata unsigned char buttons;
+  68          sbit left_button        = buttons^0;
+  69          sbit right_button       = buttons^1;
+  70          sbit middle_button      = buttons^2;
+  71          
+  72          bdata unsigned char z_wheel;
+  73          sbit ZA_PRE                     = z_wheel^0;
+  74          sbit ZB_PRE                     = z_wheel^1;
+  75          sbit ZA_CUR                     = z_wheel^2;
+  76          sbit ZB_CUR                     = z_wheel^3;
+  77          
+  78          bdata unsigned char LED_DAT;
+  79          sbit LED_B0 = LED_DAT^0;
+  80          sbit LED_B1 = LED_DAT^1;
+  81          sbit LED_B2 = LED_DAT^2;
+  82          
+  83          
+  84          U16 shutter;
+  85          data U16 para1, para2;
+  86          
+  87          S16 count_x, count_y;
+  88          S16 motion_x, motion_y; 
+  89          
+  90          data signed char count_z;
+  91          data unsigned char squal;
+  92          
+  93          data unsigned char resolution;
+  94          
+  95          
+  96          unsigned char divider, multiplier;
+  97          data unsigned char calibration_mode;
+  98          unsigned char display_buffer[5];
+  99          
+ 100          data unsigned char motion_burst[12];
+ 101          
+ 102          U16 srom_size;
+ 103          unsigned char srom_status, srom_data;
+ 104          unsigned int srom_addr, srom_count;
+ 105          bit srom_start, srom_success;
+ 106          
+ 107          bit resolution_changed;
+ 108          bit lift_changed;
+ 109          bit lift_detection_mode;
+ 110          bit stop_motion;
+ 111          bit auto_reset;
+ 112          bit received;
+ 113          bit mouse_enabled;
+ 114          
+ 115          unsigned char temp;
+ 116          
+ 117          data unsigned char IN_PACKET[10];
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 3   
+
+ 118          data unsigned char OUT_PACKET[5];
+ 119          data unsigned char grab_image, grab_start;
+ 120          unsigned char image_buffer[452];
+ 121          data unsigned int pixel_count;
+ 122          
+ 123          
+ 124          
+ 125          
+ 126          code const unsigned char flash_data[512] _at_ 0x3A00;
+ 127          code const unsigned char flash_data1[512] _at_ 0x3800;
+ 128          
+ 129          
+ 130          
+ 131          //------------------------------------------------------------------------------------
+ 132          // External VARIABLES
+ 133          //------------------------------------------------------------------------------------
+ 134          
+ 135          //------------------------------------------------------------------------------------
+ 136          // Function PROTOTYPES
+ 137          //------------------------------------------------------------------------------------
+ 138          void Sequence0(void);
+ 139          void Sequence1(void);
+ 140          void Sequence2(void);
+ 141          void Sequence3(void);
+ 142          void Sequence4(void);
+ 143          void Sequence5(void);
+ 144          void Sequence6(void);
+ 145          void Sequence7(void);
+ 146          void Sequence8(void);
+ 147          void Sequence9(void);
+ 148          void Sequence10(void);
+ 149          void Sequence11(void);
+ 150          void Sequence12(void);
+ 151          
+ 152          void shift_8bits(unsigned char data_in);
+ 153          
+ 154          void read_sensor_motion_burst(void);
+ 155          void read_sensor_motion_registers(void);
+ 156          void update_led_status(unsigned char res);
+ 157          void update_led_status_2(unsigned char lift_data);
+ 158          void led_blink (unsigned char LED_DAT);
+ 159          void WTD_Reload(void);
+ 160          
+ 161          
+ 162          
+ 163          //------------------------------------------------------------------------------------
+ 164          // External Function PROTOTYPES
+ 165          //------------------------------------------------------------------------------------
+ 166          
+ 167          
+ 168          
+ 169          
+ 170          //------------------------------------------------------------------------------------
+ 171          // InitSeq
+ 172          //------------------------------------------------------------------------------------
+ 173          void Sequence_Init(void)
+ 174          {
+ 175   1              seq0_state = 0;
+ 176   1              seq1_state = 0;
+ 177   1              seq2_state = 0;
+ 178   1              seq3_state = 0;
+ 179   1              seq4_state = 0;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 4   
+
+ 180   1              seq5_state = 0;
+ 181   1              seq6_state = 0;
+ 182   1              seq7_state = 0;
+ 183   1              seq8_state = 0;
+ 184   1              seq9_state = 0;
+ 185   1              seq10_state = 0;
+ 186   1              seq11_state = 0;
+ 187   1              seq12_state = 0;
+ 188   1      
+ 189   1              srom_start = 0;
+ 190   1              srom_success = 0;
+ 191   1              led_blink_state = 0;
+ 192   1      
+ 193   1              z_wheel = 0;
+ 194   1              ZA_PRE = ZA;
+ 195   1              ZA_CUR = ZA;
+ 196   1              ZB_PRE = ZB;
+ 197   1              ZB_CUR = ZB;
+ 198   1              sent_buttons = 0;
+ 199   1              buttons = 0;
+ 200   1              grab_image = 0;
+ 201   1              grab_start = 0;
+ 202   1      
+ 203   1              count_x.w = 0;
+ 204   1              count_y.w = 0;
+ 205   1              count_z = 0;
+ 206   1              received = 0;
+ 207   1              resolution_changed = 0;
+ 208   1              lift_changed = 0;
+ 209   1              lift_detection_mode = 0;
+ 210   1      
+ 211   1              LED_DAT = 0xFF;
+ 212   1              LED_BIT2 = LED_B2;
+ 213   1              LED_BIT1 = LED_B1;
+ 214   1              LED_BIT0 = LED_B0;
+ 215   1      
+ 216   1              auto_reset = 1;
+ 217   1              mouse_enabled = 1;
+ 218   1      /*
+ 219   1              if(LEFT_SW == 0)
+ 220   1              {
+ 221   1                      calibration_mode = 1;
+ 222   1              }
+ 223   1              else
+ 224   1              {
+ 225   1                      calibration_mode = 0;
+ 226   1              }
+ 227   1      */
+ 228   1              Timer3Init();   
+ 229   1              spi_init();     
+ 230   1              ADNS9500_Init();
+ 231   1              USB0_Init ();
+ 232   1      
+ 233   1              lift_data = 0x10;
+ 234   1      }
+ 235          //------------------------------------------------------------------------------------
+ 236          // InitWTD
+ 237          //------------------------------------------------------------------------------------
+ 238          
+ 239          void WDT_Enable(void)
+ 240          {
+ 241   1      /*
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 5   
+
+ 242   1              // 30 ms
+ 243   1          PCA0MD    &= ~0x40;
+ 244   1          PCA0MD    = 0x00;
+ 245   1          PCA0CPL4  = 0xE9;
+ 246   1          PCA0MD    |= 0x40;
+ 247   1      */      
+ 248   1      
+ 249   1              
+ 250   1              // 15 ms
+ 251   1              PCA0MD    &= ~0x40;
+ 252   1          PCA0MD    = 0x00;
+ 253   1          PCA0CPL4  = 0x74;
+ 254   1          PCA0MD    |= 0x40;
+ 255   1      }
+ 256          
+ 257          void WDT_Disable(void)
+ 258          {
+ 259   1              PCA0MD &= ~0x40;                    // Disable Watchdog timer
+ 260   1      }
+ 261          
+ 262          //------------------------------------------------------------------------------------
+ 263          // ReloadWTD
+ 264          //------------------------------------------------------------------------------------
+ 265          
+ 266          void WTD_Reload(void)
+ 267          {
+ 268   1              //PCA0CPH4 = 0xEA;
+ 269   1              PCA0CPH4 = 0x75;
+ 270   1      }
+ 271          
+ 272          
+ 273          //------------------------------------------------------------------------------------
+ 274          // Main Sequence
+ 275          //------------------------------------------------------------------------------------
+ 276          void Sequence(void)
+ 277          {               
+ 278   1              Sequence_Init();
+ 279   1      /*      if(calibration_mode == 1)
+ 280   1              while(1)
+ 281   1              {
+ 282   1                      if(received == 1)
+ 283   1                      {
+ 284   1                              EA = 0;
+ 285   1                              received = 0;
+ 286   1                              IN_PACKET[0] = OUT_PACKET[0];
+ 287   1                              switch(IN_PACKET[0])
+ 288   1                              {
+ 289   1                                      case WRITE_EEPROM:
+ 290   1                                              IN_PACKET[1] = 1;
+ 291   1                                              IN_PACKET[2] = OUT_PACKET[2];
+ 292   1                                              if(OUT_PACKET[1] == 1)
+ 293   1                                              {
+ 294   1                                                      FLASH_PageErase(0x3A00 + OUT_PACKET[1]);
+ 295   1                                              }
+ 296   1                                              FLASH_ByteWrite (0x3A00 + OUT_PACKET[1], OUT_PACKET[2]);
+ 297   1                                              break;
+ 298   1                                      case READ_EEPROM:
+ 299   1                                              IN_PACKET[1] = 1;
+ 300   1                                              IN_PACKET[2] = flash_data[OUT_PACKET[1]];
+ 301   1                                              break;
+ 302   1                                      case WRITE_SENSOR:
+ 303   1                                              IN_PACKET[1] = 1;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 6   
+
+ 304   1                                              IN_PACKET[2] = OUT_PACKET[2];
+ 305   1                                              spi_write_sensor(OUT_PACKET[1], OUT_PACKET[2]);
+ 306   1                                              break;
+ 307   1                                      case READ_SENSOR:
+ 308   1                                              IN_PACKET[1] = 1;
+ 309   1                                              IN_PACKET[2] = spi_read_sensor(OUT_PACKET[1]);
+ 310   1                                              break;
+ 311   1                                      case TEST_SENSOR:
+ 312   1                                              IN_PACKET[1] = 1;
+ 313   1                                              IN_PACKET[2] = OUT_PACKET[2];
+ 314   1                                              spi_init();
+ 315   1                                              spi_write_sensor(ADNS9500_CONFIG_BITS_ADDR, 0x08);
+ 316   1                                              break;
+ 317   1                                      case ECHO_COMMAND:
+ 318   1                                              IN_PACKET[1] = OUT_PACKET[1];
+ 319   1                                              IN_PACKET[2] = OUT_PACKET[2];
+ 320   1                                              break;
+ 321   1                                      case RESET_SENSOR:
+ 322   1                                              IN_PACKET[1] = 1;
+ 323   1                                              IN_PACKET[2] = OUT_PACKET[2];
+ 324   1                                              RESET = 1;
+ 325   1                                              delay_us(100);
+ 326   1                                              RESET = 0;
+ 327   1                                              break;
+ 328   1                                      default:
+ 329   1                                              break;
+ 330   1      
+ 331   1                              }
+ 332   1                              EA = 1;
+ 333   1                              if(EP_STATUS[1] == EP_IDLE)
+ 334   1                              {
+ 335   1                                      IN_BUFFER.Ptr = IN_PACKET;
+ 336   1                                      IN_BUFFER.Length = 3;
+ 337   1      
+ 338   1                                      SendPacket();
+ 339   1                              }
+ 340   1                      }
+ 341   1              }
+ 342   1              else
+ 343   1              {*/
+ 344   1      
+ 345   1                      WDT_Enable();           //Init WTD      
+ 346   1      
+ 347   1                      while(1)
+ 348   1                      {
+ 349   2      //                      Sequence0();    // heart beat
+ 350   2      //                      WTD_Reload();   // Reload WatchDog
+ 351   2      
+ 352   2                              if(srom_start == 0)
+ 353   2                              {
+ 354   3                                      Sequence1();    // Image Dump
+ 355   3                                      WTD_Reload();   // Reload WatchDog
+ 356   3      
+ 357   3                                      if(grab_start == 0)
+ 358   3                                      {
+ 359   4                                              Sequence2();    // Z-Wheel Motion Detection     
+ 360   4                                              WTD_Reload();   // Reload WatchDog
+ 361   4      
+ 362   4                                              Sequence3();    // Left Switch Detection
+ 363   4                                              WTD_Reload();   // Reload WatchDog
+ 364   4      
+ 365   4                                              Sequence4();    // Right Switch Detection
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 7   
+
+ 366   4                                              WTD_Reload();   // Reload WatchDog
+ 367   4      
+ 368   4                                              Sequence5();    // Middle Switch Detection
+ 369   4                                              WTD_Reload();   // Reload WatchDog
+ 370   4      
+ 371   4                                              Sequence6();    // Sensor Motion Detection
+ 372   4                                              WTD_Reload();   // Reload WatchDog
+ 373   4      
+ 374   4                                              Sequence7();    // USB Data Packet Send
+ 375   4                                              WTD_Reload();   // Reload WatchDog
+ 376   4      
+ 377   4                                              Sequence8();    // CPI Changing Detection
+ 378   4                                              WTD_Reload();   // Reload WatchDog
+ 379   4      
+ 380   4                                              Sequence9();    // Store CPI Data to EEPROM
+ 381   4                                              WTD_Reload();   // Reload WatchDog
+ 382   4      
+ 383   4                                              Sequence10();   // Lift Detection mode
+ 384   4                                              WTD_Reload();   // Reload WatchDog
+ 385   4                                              
+ 386   4                                              if(mouse_enabled == 1)
+ 387   4                                              {
+ 388   5                                                      Sequence11();   // Sensor health check
+ 389   5                                                      WTD_Reload();   // Reload WatchDog
+ 390   5                                              }
+ 391   4                                      }
+ 392   3                              }
+ 393   2                              else
+ 394   2                              {
+ 395   3                                      Sequence12();   // SROM download
+ 396   3                                      WTD_Reload();   // Reload WatchDog                      
+ 397   3                              }
+ 398   2                      }
+ 399   1              
+ 400   1      }
+ 401          
+ 402          //------------------------------------------------------------------------------------
+ 403          // Sequence0
+ 404          //------------------------------------------------------------------------------------
+ 405          /*
+ 406          void Sequence0(void)
+ 407          {
+ 408                  switch(seq0_state)
+ 409                  {
+ 410                          case 0: 
+ 411          //                              if(enable == 1)
+ 412                                          {
+ 413                                          t0_data = 900;  // x 10 milisecond
+ 414                                          time_0 = 1;
+ 415                                          seq0_state =10;
+ 416                                          }
+ 417                                          break;
+ 418                          case 10:        
+ 419                                          if(time_0==0)
+ 420                                          {
+ 421                                                  LED_HB = 0; // on                                       
+ 422                                                  seq0_state = 20;
+ 423                                          }
+ 424                                          break;
+ 425                          case 20:        
+ 426                                          t0_data = 60;
+ 427                                          time_0 = 1;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 8   
+
+ 428                                          seq0_state = 30;
+ 429                                          break;
+ 430                          case 30:        
+ 431                                          if(time_0==0)
+ 432                                          {
+ 433                                                  LED_HB = 1;     // off
+ 434                                                  seq0_state =40;
+ 435                                          }                               
+ 436                                          break;
+ 437                          case 40:        
+ 438                                          seq0_state =0;
+ 439                                          break;
+ 440                                          
+ 441                          default:        
+ 442                                          break;                  
+ 443              }
+ 444          }
+ 445          */
+ 446          //------------------------------------------------------------------------------------
+ 447          // Sequence1
+ 448          //------------------------------------------------------------------------------------
+ 449          //------------------------------------------------------------------------------------
+ 450          // Sequence1
+ 451          //------------------------------------------------------------------------------------
+ 452          void Sequence1(void)
+ 453          {
+ 454   1              switch(seq1_state)
+ 455   1              {
+ 456   2                      case 0:
+ 457   2                              if(grab_image) // change
+ 458   2                              {
+ 459   3                                      stop_motion = 1;
+ 460   3                                      image_buffer[0] = 2;    // report ID
+ 461   3                                      image_buffer[1] = 0;    // image no ready
+ 462   3                                      pixel_count = 0;
+ 463   3                                      grab_image = 0;                         
+ 464   3                                      grab_start = 1;                         
+ 465   3                                      seq1_state  = 2;
+ 466   3                              }
+ 467   2                              break;
+ 468   2                      case 2:
+ 469   2                              if(time_1 == 0)
+ 470   2                              {
+ 471   3                                      EA = 0;
+ 472   3                                      spi_write_sensor(ADNS9500_POWER_UP_RESET_ADDR, ADNS9500_POWER_UP_RESET);                                // Check SROM version
+ 473   3                                      EA = 1;
+ 474   3                                      t1_data = TIMER1_50_MILISEC;
+ 475   3                                      time_1 = 1;
+ 476   3                                      seq1_state  = 4;
+ 477   3                              }
+ 478   2                              break;
+ 479   2                      case 4:
+ 480   2                              if(time_1 == 0)
+ 481   2                              {
+ 482   3                                      EA = 0;
+ 483   3                                      temp = spi_read_sensor(ADNS9500_LASER_CTRL0_ADDR);
+ 484   3                                      spi_write_sensor(ADNS9500_LASER_CTRL0_ADDR, (temp & ~0x01));                            
+ 485   3                                      EA = 1;
+ 486   3                                      t1_data = TIMER1_50_MILISEC;
+ 487   3                                      time_1 = 1;
+ 488   3                                      seq1_state  = 10;
+ 489   3                              }
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 9   
+
+ 490   2                              break;
+ 491   2      
+ 492   2                      case 10:
+ 493   2                              if(time_1 == 0)
+ 494   2                              {
+ 495   3                                      EA = 0;
+ 496   3                                      spi_write_sensor(ADNS9500_FRAME_CAPTURE_ADDR, 0x93);
+ 497   3                                      EA = 1;
+ 498   3                                      t1_data = TIMER1_50_MILISEC;
+ 499   3                                      time_1 = 1;
+ 500   3                                      seq1_state = 12;
+ 501   3                              }
+ 502   2                              break;
+ 503   2                      case 12:
+ 504   2                              if(time_1 == 0)
+ 505   2                              {
+ 506   3                                      EA = 0;
+ 507   3                                      spi_write_sensor(ADNS9500_FRAME_CAPTURE_ADDR, 0xC5);
+ 508   3                                      EA = 1;
+ 509   3                                      t1_data = TIMER1_50_MILISEC;
+ 510   3                                      time_1 = 1;
+ 511   3                                      seq1_state = 20;
+ 512   3                              }
+ 513   2                              break;
+ 514   2                      case 20:
+ 515   2                              if(time_1 == 0)
+ 516   2                              {
+ 517   3                                      EA = 0;
+ 518   3                                      temp = spi_read_sensor(ADNS9500_MOTION_ADDR);
+ 519   3                                      EA = 1;
+ 520   3                                      t1_data = TIMER1_50_MILISEC;
+ 521   3                                      time_1 = 1;
+ 522   3                                      if((temp & ADNS9500_MOTION_PIXFIRST) == ADNS9500_MOTION_PIXFIRST)
+ 523   3                                      {
+ 524   4                                              seq1_state = 22;
+ 525   4                                      }
+ 526   3                              }
+ 527   2                              break;
+ 528   2                      case 22:
+ 529   2                              if(time_1 == 0)
+ 530   2                              {
+ 531   3                                      NCS = 0;
+ 532   3                                      spi_transfer(ADNS9500_PIXEL_BURST_ADDR & ~0x80);
+ 533   3                                      t1_data = TIMER1_50_MILISEC;
+ 534   3                                      time_1 = 1;
+ 535   3                                      seq1_state = 25;
+ 536   3                              }
+ 537   2                              break;
+ 538   2                      case 25:
+ 539   2                              if(time_1 == 0)
+ 540   2                              {
+ 541   3                                      EA = 0;
+ 542   3                                      temp = spi_transfer(0xFF);
+ 543   3                                      EA = 1;         
+ 544   3                                      image_buffer[2 + pixel_count++] = temp << 0;
+ 545   3                                      if(pixel_count >= PIXEL_NUMBER / 2)
+ 546   3                                      {
+ 547   4                                              image_buffer[1] = 1;            // image ready
+ 548   4                                              seq1_state = 30;
+ 549   4                                      }
+ 550   3                              }
+ 551   2                              break;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 10  
+
+ 552   2                      case 30:
+ 553   2                              if(grab_image)  // change
+ 554   2                              {
+ 555   3                                      image_buffer[0] = 2;    // report ID
+ 556   3                                      image_buffer[1] = 0;    // image no ready
+ 557   3                                      pixel_count = 0;
+ 558   3                                      grab_image = 0;
+ 559   3                                      seq1_state = 40;
+ 560   3                              }
+ 561   2                              break;
+ 562   2                      case 40:
+ 563   2                              EA = 0;
+ 564   2                              temp = spi_transfer(ADNS9500_PIXEL_BURST_ADDR);
+ 565   2                              EA = 1;
+ 566   2      
+ 567   2                              image_buffer[2 + pixel_count++] = temp << 0;
+ 568   2                              delay_ms(1);
+ 569   2                              if(pixel_count >= PIXEL_NUMBER / 2)
+ 570   2                              {
+ 571   3                                      NCS = 1;
+ 572   3      //                              grab_start = 0;
+ 573   3                                      image_buffer[1] = 3;            // image ready
+ 574   3                                      seq1_state = 50;
+ 575   3                              }
+ 576   2                              break;
+ 577   2                      case 50:
+ 578   2                              if(auto_reset)
+ 579   2                              {
+ 580   3                                      stop_motion = 0;
+ 581   3                                      spi_init();
+ 582   3      
+ 583   3                                      WDT_Disable();
+ 584   3                                      ADNS9500_Init();
+ 585   3                                      WDT_Enable();
+ 586   3      
+ 587   3              //                      update_resolution_display();
+ 588   3                                      update_led_status(resolution);
+ 589   3                              }
+ 590   2                              t1_data = TIMER1_1_SEC;
+ 591   2                              time_1 = 1;
+ 592   2                              seq1_state = 60;
+ 593   2                              break;
+ 594   2                      case 60:
+ 595   2                              if(time_1 == 0)
+ 596   2                              {                               
+ 597   3                                      grab_start = 0;
+ 598   3                                      seq1_state = 0;
+ 599   3                                      //while(1);
+ 600   3                              }
+ 601   2                              break;
+ 602   2                      default:
+ 603   2                              break;
+ 604   2      
+ 605   2              }
+ 606   1      }
+ 607          
+ 608          
+ 609          //------------------------------------------------------------------------------------
+ 610          // Sequence2
+ 611          //------------------------------------------------------------------------------------
+ 612          void Sequence2(void)
+ 613          {
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 11  
+
+ 614   1              ZA_CUR = ZA;
+ 615   1              ZB_CUR = ZB;
+ 616   1      
+ 617   1              if(ZA_PRE == 1 && ZA_CUR == 1 && ZB_PRE == 0 && ZB_CUR == 1)
+ 618   1              {
+ 619   2                      count_z++;
+ 620   2              }
+ 621   1              else if(ZA_PRE == 1 && ZA_CUR == 1 && ZB_PRE == 1 && ZB_CUR == 0)
+ 622   1              {
+ 623   2                      count_z--;
+ 624   2              }
+ 625   1              else if(ZA_PRE == 0 && ZA_CUR == 1 && ZB_PRE == 1 && ZB_CUR == 1)
+ 626   1              {
+ 627   2                      count_z--;
+ 628   2              }
+ 629   1              else if(ZA_PRE == 1 && ZA_CUR == 0 && ZB_PRE == 1 && ZB_CUR == 1)
+ 630   1              {
+ 631   2                      count_z++;
+ 632   2              }
+ 633   1      
+ 634   1              ZA_PRE = ZA_CUR;
+ 635   1              ZB_PRE = ZB_CUR;
+ 636   1      }
+ 637          
+ 638          //------------------------------------------------------------------------------------
+ 639          // Sequence3
+ 640          //------------------------------------------------------------------------------------
+ 641          void Sequence3(void)
+ 642          {
+ 643   1              switch(seq3_state)
+ 644   1              {
+ 645   2                      case 0:
+ 646   2                              if(LEFT_SW == 0)
+ 647   2                              {
+ 648   3                                      t3_data = SW_DELAY;                     // default 5ms timer, modify to 0.5ms
+ 649   3                                      time_3 = 1;
+ 650   3                                      seq3_state = 10;
+ 651   3                              }
+ 652   2                              break;
+ 653   2                      case 10:
+ 654   2                              if(LEFT_SW == 1)
+ 655   2                              {
+ 656   3                                      seq3_state = 0;
+ 657   3                              }
+ 658   2                              else if(time_3 == 0)
+ 659   2                              {
+ 660   3                                      left_button = 1;
+ 661   3                                      seq3_state = 20;
+ 662   3                              }
+ 663   2                              break;
+ 664   2                      case 20:
+ 665   2                              if(LEFT_SW == 1)
+ 666   2                              {
+ 667   3                                      t3_data = SW_DELAY;
+ 668   3                                      time_3 = 1;
+ 669   3                                      seq3_state = 30;
+ 670   3                              }
+ 671   2                              break;
+ 672   2                      case 30:
+ 673   2                              if(LEFT_SW == 0)
+ 674   2                              {
+ 675   3                                      seq3_state = 20;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 12  
+
+ 676   3                              }
+ 677   2                              else if(time_3 == 0)
+ 678   2                              {
+ 679   3                                      left_button = 0;
+ 680   3                                      seq3_state = 0;
+ 681   3                              }
+ 682   2                              break;
+ 683   2                      default:
+ 684   2                              break;
+ 685   2              }
+ 686   1      }
+ 687          
+ 688          
+ 689          
+ 690          //------------------------------------------------------------------------------------
+ 691          // Sequence4
+ 692          //------------------------------------------------------------------------------------
+ 693          void Sequence4(void)
+ 694          {
+ 695   1              switch(seq4_state)
+ 696   1              {
+ 697   2                      case 0:
+ 698   2                              if(RIGHT_SW == 0)
+ 699   2                              {
+ 700   3                                      t4_data = SW_DELAY;
+ 701   3                                      time_4 = 1;
+ 702   3                                      seq4_state = 10;
+ 703   3                              }
+ 704   2                              break;
+ 705   2                      case 10:
+ 706   2                              if(RIGHT_SW == 1)
+ 707   2                              {
+ 708   3                                      seq4_state = 0;
+ 709   3                              }
+ 710   2                              else if(time_4 == 0)
+ 711   2                              {
+ 712   3                                      right_button = 1;
+ 713   3                                      t10_data = 4000;
+ 714   3                                      time_10 = 1;
+ 715   3                                      seq4_state = 20;
+ 716   3                              }
+ 717   2                              break;
+ 718   2                      case 20:
+ 719   2                              if(RIGHT_SW == 1)
+ 720   2                              {
+ 721   3                                      t4_data = SW_DELAY;
+ 722   3                                      time_4 = 1;
+ 723   3                                      seq4_state = 30;
+ 724   3                              }
+ 725   2                              else if(time_10 == 0)
+ 726   2                              {
+ 727   3                                      seq4_state = 40;
+ 728   3                              }
+ 729   2                              break;
+ 730   2                      case 30:
+ 731   2                              if(RIGHT_SW == 0 && lift_detection_mode == 0)
+ 732   2                              {
+ 733   3                                      seq4_state = 20;
+ 734   3                              }
+ 735   2                              else if(time_4 == 0 && lift_changed == 0)
+ 736   2                              {
+ 737   3                                      right_button = 0;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 13  
+
+ 738   3                                      update_led_status(resolution);
+ 739   3                                      seq4_state = 0;
+ 740   3                              }
+ 741   2                              else if(time_4 == 0 && lift_changed == 1)
+ 742   2                              {
+ 743   3                                      lift_changed = 0;
+ 744   3                                      update_led_status(resolution);
+ 745   3                                      seq4_state = 0;
+ 746   3                              }
+ 747   2                              break;
+ 748   2                      case 40:                // enter lift detection mode
+ 749   2                              if (RIGHT_SW == 1)
+ 750   2                              {
+ 751   3                                      seq4_state = 30;
+ 752   3                              }                       
+ 753   2                              else 
+ 754   2                              {       
+ 755   3                                      lift_detection_mode = 1;
+ 756   3                              }
+ 757   2                              break;
+ 758   2                      default:
+ 759   2                              break;
+ 760   2              }
+ 761   1      }
+ 762          
+ 763          
+ 764          //------------------------------------------------------------------------------------
+ 765          // Sequence5
+ 766          //------------------------------------------------------------------------------------
+ 767          void Sequence5(void)
+ 768          {
+ 769   1              switch(seq5_state)
+ 770   1              {
+ 771   2                      case 0:
+ 772   2                              if(MID_SW == 0)
+ 773   2                              {
+ 774   3                                      t5_data = SW_DELAY;
+ 775   3                                      time_5 = 1;
+ 776   3                                      seq5_state = 10;
+ 777   3                              }
+ 778   2                              break;
+ 779   2                      case 10:
+ 780   2                              if(MID_SW == 1)
+ 781   2                              {
+ 782   3                                      seq5_state = 0;
+ 783   3                              }
+ 784   2                              else if(time_5 == 0)
+ 785   2                              {
+ 786   3                                      middle_button = 1;
+ 787   3                                      seq5_state = 20;
+ 788   3                              }
+ 789   2                              break;
+ 790   2                      case 20:
+ 791   2                              if(MID_SW == 1)
+ 792   2                              {
+ 793   3                                      t5_data = SW_DELAY;
+ 794   3                                      time_5 = 1;
+ 795   3                                      seq5_state = 30;
+ 796   3                              }
+ 797   2                              break;
+ 798   2                      case 30:
+ 799   2                              if(MID_SW == 0)
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 14  
+
+ 800   2                              {
+ 801   3                                      seq5_state = 20;
+ 802   3                              }
+ 803   2                              else if(time_5 == 0)
+ 804   2                              {
+ 805   3                                      middle_button = 0;
+ 806   3                                      seq5_state = 0;
+ 807   3                              }
+ 808   2                              break;
+ 809   2                      default:
+ 810   2                              break;
+ 811   2              }
+ 812   1      }
+ 813          //------------------------------------------------------------------------------------
+ 814          // Sequence6
+ 815          //------------------------------------------------------------------------------------
+ 816          void Sequence6(void)
+ 817          {
+ 818   1              switch(seq6_state)
+ 819   1              {
+ 820   2                      case 0:
+ 821   2                              EA = 0;
+ 822   2                              
+ 823   2      
+ 824   2      //                      temp = spi_read_sensor(ADNS9500_LASER_CTRL0_ADDR);      
+ 825   2      //                      temp = spi_read_sensor(ADNS9500_LASER_CTRL1_ADDR);
+ 826   2      //                      temp = spi_read_sensor(ADNS9500_LP_CFG0_ADDR);
+ 827   2      //                      temp = spi_read_sensor(ADNS9500_LP_CFG1_ADDR);
+ 828   2      //                      temp = spi_read_sensor(ADNS9500_MOTION_ADDR);   
+ 829   2      //                      temp = spi_read_sensor(ADNS9500_CONFIGURATION_II_ADDR); 
+ 830   2      
+ 831   2                      
+ 832   2                              if(MOTION == 0)         // motion interrupt method
+ 833   2                              {
+ 834   3                                      read_sensor_motion_burst();                             // read motion burst register
+ 835   3              //                      read_sensor_motion_registers();                 // read delta_x,delta_y registers
+ 836   3      
+ 837   3                                      //shutter.b[0] = spi_read_sensor(ADNS9500_SHUTTER_UPPER_ADDR);
+ 838   3                                      //shutter.b[1] = spi_read_sensor(ADNS9500_SHUTTER_LOWER_ADDR);
+ 839   3                                      
+ 840   3                                      count_x.w += motion_x.w;        // motion accumulate
+ 841   3                                      count_y.w += motion_y.w;
+ 842   3      
+ 843   3              
+ 844   3                              }  
+ 845   2      
+ 846   2                              //      seq6_state = 0;
+ 847   2                              
+ 848   2                              EA = 1;
+ 849   2                              break;
+ 850   2                      default:
+ 851   2                              break;
+ 852   2              
+ 853   2              }
+ 854   1      }
+ 855          //------------------------------------------------------------------------------------
+ 856          // Sequence7
+ 857          //------------------------------------------------------------------------------------
+ 858          
+ 859          void Sequence7(void)
+ 860          {
+ 861   1              switch(seq7_state)
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 15  
+
+ 862   1              {
+ 863   2                      case 0:
+ 864   2                              if(sent_buttons != buttons || count_x.w || count_y.w || count_z)
+ 865   2                              {
+ 866   3              //                      count_x.w = count_x.w;
+ 867   3              //                      count_y.w = -count_y.w;   //for silabs MCU, need to reverse y 
+ 868   3      /*                              
+ 869   3                                      IN_PACKET[0] = buttons;
+ 870   3                                      IN_PACKET[1] = count_x.b[1];
+ 871   3                                      IN_PACKET[2] = count_y.b[1];
+ 872   3                                      IN_PACKET[3] = count_z;
+ 873   3                                      IN_PACKET[4] = count_x.b[1];
+ 874   3                                      IN_PACKET[5] = count_x.b[0];
+ 875   3                                      IN_PACKET[6] = count_y.b[1];
+ 876   3                                      IN_PACKET[7] = count_y.b[0];
+ 877   3      */
+ 878   3      //                              count_x.w = -300;                               
+ 879   3      
+ 880   3                                      IN_PACKET[0] = 1;
+ 881   3                                      IN_PACKET[1] = buttons;
+ 882   3                                      IN_PACKET[2] = count_x.b[LSB];
+ 883   3                                      IN_PACKET[3] = count_y.b[LSB];
+ 884   3                                      IN_PACKET[4] = count_z;
+ 885   3                                      IN_PACKET[5] = count_x.b[LSB];
+ 886   3                                      IN_PACKET[6] = count_x.b[MSB];
+ 887   3                                      IN_PACKET[7] = count_y.b[LSB];
+ 888   3                                      IN_PACKET[8] = count_y.b[MSB];
+ 889   3      
+ 890   3                                      sent_buttons = buttons;
+ 891   3                                      count_x.w = 0;
+ 892   3                                      count_y.w = 0;
+ 893   3                                      count_z = 0;
+ 894   3      
+ 895   3                                      t7_data = 2;
+ 896   3                                      time_7 = 1;                                             //delay 1ms
+ 897   3                                      seq7_state = 10;
+ 898   3                              }
+ 899   2                              break;
+ 900   2                      case 10:
+ 901   2                              if(EP_STATUS[1] == EP_IDLE)
+ 902   2                              {
+ 903   3                                      IN_BUFFER.Ptr = IN_PACKET;
+ 904   3                                      IN_BUFFER.Length = 9;
+ 905   3      
+ 906   3                                      SendPacket();
+ 907   3                                      seq7_state = 20;
+ 908   3                              }
+ 909   2                              break;
+ 910   2                      case 20:
+ 911   2                              if(EP_STATUS[1] == EP_IDLE)
+ 912   2                              //if(time_7 == 0)
+ 913   2                              {
+ 914   3                                      seq7_state = 0;
+ 915   3                              }
+ 916   2                              break;
+ 917   2                      default:
+ 918   2                              break;
+ 919   2              }
+ 920   1      }
+ 921          
+ 922          //------------------------------------------------------------------------------------
+ 923          // Sequence8
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 16  
+
+ 924          //------------------------------------------------------------------------------------
+ 925          void Sequence8(void)
+ 926          {
+ 927   1              switch(seq8_state)
+ 928   1              {
+ 929   2                      case 0:
+ 930   2                              if(CPI_P == 0)
+ 931   2                              {
+ 932   3                                      t8_data = SW_DELAY_2;
+ 933   3                                      time_8 = 1;
+ 934   3                                      seq8_state = 10;
+ 935   3                              }
+ 936   2                              else if(CPI_M == 0)
+ 937   2                              {
+ 938   3                                      t8_data = SW_DELAY_2;
+ 939   3                                      time_8 = 1;
+ 940   3                                      seq8_state = 40;
+ 941   3                              }
+ 942   2                              break;
+ 943   2                      case 10:
+ 944   2                              if(CPI_P == 1)
+ 945   2                              {
+ 946   3                                      seq8_state = 0;
+ 947   3                              }
+ 948   2                              if(time_8 == 0)
+ 949   2                              {
+ 950   3                                      if(stop_motion == 0 && lift_detection_mode == 0)
+ 951   3                                      {
+ 952   4                                              resolution++;
+ 953   4                                              if(resolution > MAX_RESOLUTION_SETTINR)
+ 954   4                                              {
+ 955   5                                                      resolution = MIN_RESOLUTION_SETTINR;
+ 956   5                                              }
+ 957   4                                              spi_write_sensor(ADNS9500_CONFIGURATION_I_ADDR, resolution);
+ 958   4                                              resolution_changed = 1;
+ 959   4                                              update_led_status(resolution);
+ 960   4                      //                      update_resolution_display();
+ 961   4                                      }
+ 962   3      
+ 963   3                                      t8_data = 1000;
+ 964   3                                      time_8 = 1;
+ 965   3                                      seq8_state = 20;
+ 966   3                              }
+ 967   2                              break;
+ 968   2                      case 20:
+ 969   2                              if(time_8 == 0)
+ 970   2                              {
+ 971   3                                      t8_data = 150;
+ 972   3                                      time_8 = 1;
+ 973   3                                      if(stop_motion == 0 && lift_detection_mode == 0)
+ 974   3                                      {
+ 975   4                                              resolution++;
+ 976   4                                              if(resolution > MAX_RESOLUTION_SETTINR)
+ 977   4                                              {
+ 978   5                                                      resolution = MIN_RESOLUTION_SETTINR;
+ 979   5                                              }
+ 980   4                                              spi_write_sensor(ADNS9500_CONFIGURATION_I_ADDR, resolution);
+ 981   4                                              resolution_changed = 1;
+ 982   4                                              update_led_status(resolution);
+ 983   4              //                              update_resolution_display();
+ 984   4                                      }
+ 985   3                              }
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 17  
+
+ 986   2                              if(CPI_P == 1)
+ 987   2                              {
+ 988   3                                      seq8_state = 0;
+ 989   3                              }
+ 990   2                              break;
+ 991   2                      case 40:
+ 992   2                              if(CPI_M == 1)
+ 993   2                              {
+ 994   3                                      seq8_state = 0;
+ 995   3                              }
+ 996   2                              if(time_8 == 0)
+ 997   2                              {
+ 998   3                                      if(stop_motion == 0 && lift_detection_mode == 0)
+ 999   3                                      {
+1000   4                                              resolution--;
+1001   4                                              if(resolution < MIN_RESOLUTION_SETTINR)
+1002   4                                              {
+1003   5                                                      resolution = MAX_RESOLUTION_SETTINR;
+1004   5                                              }
+1005   4                                              spi_write_sensor(ADNS9500_CONFIGURATION_I_ADDR, resolution);
+1006   4                                              resolution_changed = 1;
+1007   4                                              update_led_status(resolution);
+1008   4              //                              update_resolution_display();
+1009   4                                      }
+1010   3      
+1011   3                                      t8_data = 1000;
+1012   3                                      time_8 = 1;
+1013   3                                      seq8_state = 50;
+1014   3                              }
+1015   2                              break;
+1016   2                      case 50:
+1017   2                              if(time_8 == 0)
+1018   2                              {
+1019   3                                      t8_data = 150;
+1020   3                                      time_8 = 1;
+1021   3                                      if(stop_motion == 0 && lift_detection_mode == 0)
+1022   3                                      {
+1023   4                                              resolution--;
+1024   4                                              if(resolution < MIN_RESOLUTION_SETTINR)
+1025   4                                              {
+1026   5                                                      resolution = MAX_RESOLUTION_SETTINR;
+1027   5                                              }
+1028   4                                              spi_write_sensor(ADNS9500_CONFIGURATION_I_ADDR, resolution);
+1029   4                                              resolution_changed = 1;
+1030   4                                              update_led_status(resolution);
+1031   4      //                                      update_resolution_display();
+1032   4                                      }
+1033   3                              }
+1034   2                              if(CPI_M == 1)
+1035   2                              {
+1036   3                                      seq8_state = 0;
+1037   3                              }
+1038   2                              break;
+1039   2      /*              case 100:
+1040   2                              if(CPI_P == 1 && CPI_M == 1)
+1041   2                              {
+1042   2                                      t8_data = 50;
+1043   2                                      time_8 = 1;
+1044   2                                      seq8_state = 110;
+1045   2                              }
+1046   2                              break;
+1047   2                      case 110:
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 18  
+
+1048   2                              if(CPI_P == 0 || CPI_M == 0)
+1049   2                              {
+1050   2                                      seq8_state = 100;
+1051   2                              }
+1052   2                              if(time_8 == 0)
+1053   2                              {
+1054   2                                      seq8_state = 0;
+1055   2                              }
+1056   2                              break;          */
+1057   2                      default:
+1058   2                              break;
+1059   2              }
+1060   1      }
+1061          //------------------------------------------------------------------------------------
+1062          // Sequence9
+1063          //------------------------------------------------------------------------------------
+1064          void Sequence9(void)
+1065          {
+1066   1              switch(seq9_state)
+1067   1              {
+1068   2                      case 0:
+1069   2                              if(resolution_changed)
+1070   2                              {
+1071   3                                      time_9 = 1;
+1072   3                                      t9_data = 4000;                                                 // if cpi unchanged for >2sec, proceed
+1073   3                                      resolution_changed = 0;
+1074   3                                      seq9_state = 10;
+1075   3                              }
+1076   2                              break;
+1077   2                      case 10:
+1078   2                              if(resolution_changed)
+1079   2                              {
+1080   3                                      seq9_state = 0;
+1081   3                              }
+1082   2                              else if(time_9 == 0)
+1083   2                              {
+1084   3                                      seq9_state = 20;
+1085   3                              }
+1086   2                              break;
+1087   2                      case 20:
+1088   2                              spi_write_eeprom(0x0000, resolution);           //store cpi data to eeprom
+1089   2                              seq9_state = 0;
+1090   2                              break;
+1091   2                      default:
+1092   2                              break;
+1093   2              }
+1094   1      }
+1095          //------------------------------------------------------------------------------------
+1096          // Sequence10
+1097          //------------------------------------------------------------------------------------
+1098          void Sequence10(void)
+1099          {
+1100   1              switch(seq10_state)
+1101   1              {
+1102   2                      case 0:
+1103   2                              if(lift_detection_mode == 1 && RIGHT_SW == 0)
+1104   2                              {
+1105   3                                      update_led_status_2(lift_data);
+1106   3                                      if(CPI_P == 0)
+1107   3                                      {
+1108   4                                              t11_data = 50;
+1109   4                                              time_11 = 1;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 19  
+
+1110   4                                              seq10_state = 10;
+1111   4                                      }
+1112   3                                      else if(CPI_M == 0)
+1113   3                                      {
+1114   4                                              t11_data = 5;
+1115   4                                              time_11 = 1;
+1116   4                                              seq10_state = 20;
+1117   4                                      }
+1118   3                              }
+1119   2                              else if(RIGHT_SW == 1)
+1120   2                              {
+1121   3                                      lift_detection_mode = 0;
+1122   3                                      update_led_status(resolution);
+1123   3                              }
+1124   2                              break;
+1125   2      
+1126   2                      case 10:
+1127   2                              if(CPI_P == 1)
+1128   2                              {
+1129   3                                      seq10_state = 0;
+1130   3                              }
+1131   2                              if(time_11 == 0)
+1132   2                              {
+1133   3                                      lift_data = lift_data + 0x03;
+1134   3                                      if (lift_data > 0x1F)
+1135   3                                      {
+1136   4                                              lift_data = 0x1F;
+1137   4                                      }
+1138   3                                      spi_write_sensor(ADNS9500_LIFT_DETECTION_THR_ADDR, lift_data);
+1139   3                                      update_led_status_2(lift_data);
+1140   3                                      lift_changed = 1;
+1141   3                              
+1142   3                                      t11_data = 1000;
+1143   3                                      time_11 = 1;
+1144   3                                      seq10_state = 15;
+1145   3                              }
+1146   2                              break;
+1147   2      
+1148   2                      case 15:
+1149   2                              if(time_11 == 0)
+1150   2                              {
+1151   3                                      t11_data = 300;
+1152   3                                      time_11 = 1;                                    
+1153   3      
+1154   3                                      lift_data = lift_data + 0x03;
+1155   3                                      if (lift_data > 0x1F)
+1156   3                                      {
+1157   4                                              lift_data = 0x1F;
+1158   4                                      }
+1159   3                                      spi_write_sensor(ADNS9500_LIFT_DETECTION_THR_ADDR, lift_data);
+1160   3                                      update_led_status_2(lift_data);
+1161   3                                      lift_changed = 1;
+1162   3                              }
+1163   2                              if(CPI_P == 1)
+1164   2                              {
+1165   3                                      seq10_state = 0;
+1166   3                              }
+1167   2                              break;
+1168   2      
+1169   2                      case 20:
+1170   2                              if(CPI_M == 1)
+1171   2                              {
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 20  
+
+1172   3                                      seq10_state = 0;
+1173   3                              }
+1174   2                              if(time_11 == 0)
+1175   2                              {
+1176   3                                      lift_data = lift_data - 0x03;
+1177   3                                      if (lift_data > 0x1F)
+1178   3                                      {
+1179   4                                              lift_data = 0x01;
+1180   4                                      }
+1181   3                                      spi_write_sensor(ADNS9500_LIFT_DETECTION_THR_ADDR, lift_data);
+1182   3                                      update_led_status_2(lift_data);
+1183   3                                      lift_changed = 1;
+1184   3      
+1185   3                                      t11_data = 1000;
+1186   3                                      time_11 = 1;
+1187   3                                      seq10_state = 25;
+1188   3                              }
+1189   2                              break;
+1190   2                      case 25:
+1191   2                              if(time_11 == 0)
+1192   2                              {
+1193   3                                      lift_data = lift_data - 0x03;
+1194   3                                      if (lift_data > 0x1F)           // unsigned number, so won't become negative
+1195   3                                      {
+1196   4                                              lift_data = 0x01;
+1197   4                                      }
+1198   3                                      spi_write_sensor(ADNS9500_LIFT_DETECTION_THR_ADDR, lift_data);
+1199   3                                      update_led_status_2(lift_data);
+1200   3                                      lift_changed = 1;
+1201   3                              }
+1202   2                              if(CPI_M == 1)
+1203   2                              {
+1204   3                                      seq10_state = 0;
+1205   3                              }
+1206   2                              break;
+1207   2                      default:
+1208   2                              break;
+1209   2              }
+1210   1      }
+1211          
+1212          //------------------------------------------------------------------------------------
+1213          // Sequence11
+1214          //------------------------------------------------------------------------------------
+1215          void Sequence11(void)
+1216          {
+1217   1              unsigned char temp;
+1218   1      
+1219   1              switch(seq11_state)
+1220   1              {
+1221   2                      case 0:
+1222   2                              
+1223   2                              // Use timer control, check sensor every 100ms
+1224   2                              t13_data = 200;                 // x 10ms
+1225   2                              time_13 = 1;                    
+1226   2                              seq11_state = 10;
+1227   2                              break;
+1228   2      
+1229   2                      case 10:
+1230   2                              
+1231   2                              if(time_13 == 0)
+1232   2                              {       
+1233   3                                      seq11_state = 15;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 21  
+
+1234   3                              }
+1235   2                              break;
+1236   2      
+1237   2                      case 15:
+1238   2                              
+1239   2                              EA = 0;
+1240   2                              temp = spi_read_sensor(ADNS9500_MOTION_ADDR);
+1241   2                              EA = 1;
+1242   2                              seq11_state = 20;
+1243   2                              // If Fault = 1 and/or LP_Valid = 0, then power up reset the sensor again
+1244   2                              if(((temp & 0x40) == 0x40) || ((temp & 0x20) == 0x00))
+1245   2                              {
+1246   3                                      WDT_Disable();
+1247   3                                      ADNS9500_Init(); 
+1248   3                                      WDT_Enable();
+1249   3                                      seq11_state = 0;
+1250   3                              }               
+1251   2                              
+1252   2                              
+1253   2                              break;
+1254   2                      case 20:
+1255   2                              
+1256   2                              EA = 0;
+1257   2                              temp = spi_read_sensor(ADNS9500_OBSERVATION_ADDR);
+1258   2                              EA = 1;
+1259   2      
+1260   2                              // If OB6 = 1, then power up reset the sensor again
+1261   2                              if((temp & 0x40) == 0x00)
+1262   2                              {
+1263   3                                      WDT_Disable();
+1264   3                                      ADNS9500_Init(); 
+1265   3                                      WDT_Enable();
+1266   3                              }               
+1267   2                              
+1268   2                              seq11_state = 0;
+1269   2                              break;
+1270   2                      
+1271   2                      default:
+1272   2                              break;
+1273   2              }
+1274   1      }
+1275          
+1276          //------------------------------------------------------------------------------------
+1277          // Sequence12
+1278          //------------------------------------------------------------------------------------
+1279          void Sequence12(void)
+1280          {
+1281   1              switch(seq12_state)
+1282   1              {
+1283   2                      case 0:
+1284   2                              if(srom_success)
+1285   2                              {
+1286   3                                      EA = 0;
+1287   3      
+1288   3                                      WDT_Disable();
+1289   3                                      FLASH_PageErase(SROM_ADDR + 0x0000);
+1290   3                                      FLASH_PageErase(SROM_ADDR + 0x0200);
+1291   3                                      FLASH_PageErase(SROM_ADDR + 0x0400);
+1292   3                                      FLASH_PageErase(SROM_ADDR + 0x0600);
+1293   3                                      FLASH_PageErase(SROM_ADDR + 0x0800);
+1294   3                                      FLASH_PageErase(SROM_ADDR + 0x0A00);
+1295   3                                      FLASH_PageErase(SROM_ADDR + 0x0C00);                            
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 22  
+
+1296   3      
+1297   3                                      srom_size.b[0] = FLASH_ByteRead(SROM_TEMP_ADDR + 0x0C00);
+1298   3                                      srom_size.b[1] = FLASH_ByteRead(SROM_TEMP_ADDR + 0x0C01);
+1299   3                                      for(srom_count = 0; srom_count < srom_size.w; srom_count++)
+1300   3                                      {
+1301   4                                              srom_data = FLASH_ByteRead(SROM_TEMP_ADDR + srom_count);
+1302   4                                              FLASH_ByteWrite((SROM_ADDR + srom_count), srom_data);
+1303   4                                      }       
+1304   3                                      FLASH_ByteWrite ((SROM_ADDR + 0x0C00), srom_size.b[0]);
+1305   3                                      FLASH_ByteWrite ((SROM_ADDR + 0x0C01), srom_size.b[1]);
+1306   3                                      FLASH_ByteWrite ((SROM_ADDR + 0x0C02), 1);
+1307   3      
+1308   3                                      srom_start = 0;
+1309   3                                      srom_success = 0;
+1310   3                                      ADNS9500_Init();
+1311   3      
+1312   3                                      WDT_Enable();
+1313   3                                      EA = 1;
+1314   3                              }
+1315   2                              break;
+1316   2                      case 10:
+1317   2                               
+1318   2                              break;
+1319   2                      default:
+1320   2                              break;
+1321   2              }
+1322   1      }
+1323          
+1324          
+1325          /*void shift_8bits(unsigned char data_in)
+1326          {
+1327          
+1328                  dummy1_bit = data_in;
+1329                  DIN = dummy1_bit7; CLK = 0; CLK = 1;
+1330                  DIN = dummy1_bit6; CLK = 0; CLK = 1;
+1331                  DIN = dummy1_bit5; CLK = 0; CLK = 1;
+1332                  DIN = dummy1_bit4; CLK = 0; CLK = 1;
+1333                  DIN = dummy1_bit3; CLK = 0; CLK = 1;
+1334                  DIN = dummy1_bit2; CLK = 0; CLK = 1;
+1335                  DIN = dummy1_bit1; CLK = 0; CLK = 1;
+1336                  DIN = dummy1_bit0; CLK = 0; CLK = 1;
+1337          
+1338          }*/
+1339          void read_sensor_motion_registers(void)
+1340          {
+1341   1              unsigned char temp;
+1342   1      
+1343   1              temp = spi_read_sensor(ADNS9500_MOTION_ADDR);
+1344   1      
+1345   1              motion_x.b[LSB] = spi_read_sensor(ADNS9500_DELTAX_L_ADDR);
+1346   1              motion_x.b[MSB] = spi_read_sensor(ADNS9500_DELTAX_H_ADDR);
+1347   1                                      
+1348   1              motion_y.b[LSB] = spi_read_sensor(ADNS9500_DELTAY_L_ADDR);
+1349   1              motion_y.b[MSB] = spi_read_sensor(ADNS9500_DELTAY_H_ADDR);
+1350   1      }
+1351          
+1352          void read_sensor_motion_burst(void)
+1353          {
+1354   1              unsigned char temp;
+1355   1              
+1356   1              spi_write_sensor(ADNS9500_MOTION_BURST_ADDR, 0x50);
+1357   1              delay_us(100);  // wait for Tsrad >100us (default 1 frame)
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 23  
+
+1358   1              NCS = 0;
+1359   1              delay1();
+1360   1              spi_transfer(ADNS9500_MOTION_BURST_ADDR);       //send address to sensor before start spi_read
+1361   1              delay_us(50);
+1362   1      
+1363   1              ///// start motion burst /////
+1364   1              temp                    = spi_transfer(0xff); //bit 0
+1365   1              temp                    = spi_transfer(0xff); //bit 1
+1366   1              motion_x.b[LSB] = spi_transfer(0xff); //bit 2
+1367   1              motion_x.b[MSB] = spi_transfer(0xff); //bit 3
+1368   1              motion_y.b[LSB] = spi_transfer(0xff); //bit 4
+1369   1              motion_y.b[MSB] = spi_transfer(0xff); //bit 5
+1370   1              ///// end motion burst /////
+1371   1      
+1372   1              NCS = 1;                                                        
+1373   1      }
+1374          
+1375          void update_led_status(unsigned char res)
+1376          { 
+1377   1              switch(res)
+1378   1              {
+1379   2                      case 1:
+1380   2                      case 2:
+1381   2                      case 3:
+1382   2                      case 4:                 
+1383   2                      case 5:                 
+1384   2                      case 6:
+1385   2                              LED_BIT2 = 1;                   //off
+1386   2                              LED_BIT1 = 1;                   //off
+1387   2                              LED_BIT0 = 1;                   //off
+1388   2                              break;
+1389   2                      case 7:
+1390   2                      case 8:
+1391   2                      case 9:
+1392   2                      case 10:
+1393   2                      case 11:
+1394   2                      case 12:
+1395   2                      case 13:
+1396   2                              LED_BIT2 = 1;                   //off
+1397   2                              LED_BIT1 = 1;                   //off
+1398   2                              LED_BIT0 = 0;                   //on
+1399   2                              break;
+1400   2                      case 14:
+1401   2                      case 15:
+1402   2                      case 16:
+1403   2                      case 17:
+1404   2                      case 18:                        
+1405   2                      case 19:                        
+1406   2                      case 20:
+1407   2                              LED_BIT2 = 1;                   //off
+1408   2                              LED_BIT1 = 0;                   //on
+1409   2                              LED_BIT0 = 1;                   //off
+1410   2                              break;
+1411   2                      case 21:
+1412   2                      case 22:
+1413   2                      case 23:
+1414   2                      case 24:
+1415   2                      case 25:
+1416   2                      case 26:
+1417   2                      case 27:
+1418   2                              LED_BIT2 = 1;                   //off
+1419   2                              LED_BIT1 = 0;                   //on
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 24  
+
+1420   2                              LED_BIT0 = 0;                   //on
+1421   2                              break;
+1422   2                      case 28:
+1423   2                      case 29:
+1424   2                      case 30:
+1425   2                      case 31:
+1426   2                      case 32:
+1427   2                      case 33:
+1428   2                      case 34:
+1429   2                              LED_BIT2 = 0;                   //on
+1430   2                              LED_BIT1 = 1;                   //off
+1431   2                              LED_BIT0 = 1;                   //off
+1432   2                              break;
+1433   2                      case 35:                        
+1434   2                      case 36:
+1435   2                      case 37:
+1436   2                      case 38:
+1437   2                      case 39:
+1438   2                      case 40:
+1439   2                      case 41:
+1440   2                              LED_BIT2 = 0;                   //on
+1441   2                              LED_BIT1 = 1;                   //off
+1442   2                              LED_BIT0 = 0;                   //on
+1443   2                              break;
+1444   2                      case 42:
+1445   2                      case 43:
+1446   2                      case 44:
+1447   2                      case 45:
+1448   2                      case 46:
+1449   2                      case 47:
+1450   2                      case 48:
+1451   2                              LED_BIT2 = 0;                   //on
+1452   2                              LED_BIT1 = 0;                   //on
+1453   2                              LED_BIT0 = 1;                   //off
+1454   2                              break;
+1455   2                      case 49:
+1456   2                      case 50:
+1457   2                      case 51:
+1458   2                      case 52:
+1459   2                      case 53:
+1460   2                      case 54:
+1461   2                      case 55:
+1462   2                      case 56:
+1463   2                              LED_BIT2 = 0;                   //on
+1464   2                              LED_BIT1 = 0;                   //on
+1465   2                              LED_BIT0 = 0;                   //on
+1466   2                              break;
+1467   2                              
+1468   2                      default:
+1469   2                              break;
+1470   2              }
+1471   1      }
+1472          
+1473          void update_led_status_2(unsigned char lift_data)
+1474          { 
+1475   1              switch(lift_data)
+1476   1              {
+1477   2                      case 1:
+1478   2                              LED_DAT = 0xFF;                 //all off       
+1479   2                              led_blink(LED_DAT);
+1480   2                              break;  
+1481   2                      case 4:
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 25  
+
+1482   2                              LED_DAT = 0xF3;                 //all off       
+1483   2                              led_blink(LED_DAT);
+1484   2                              break;
+1485   2                      case 7:
+1486   2                              LED_DAT = 0xFD;                 //all off       
+1487   2                              led_blink(LED_DAT);
+1488   2                              break;
+1489   2                      case 10:
+1490   2                              LED_DAT = 0xF1;                 //all off       
+1491   2                              led_blink(LED_DAT);
+1492   2                              break;
+1493   2                      case 13:
+1494   2                              LED_DAT = 0xFE;                 //all off       
+1495   2                              led_blink(LED_DAT);
+1496   2                              break;
+1497   2                      case 16:
+1498   2                              LED_DAT = 0xFA;                 //all off       
+1499   2                              led_blink(LED_DAT);
+1500   2                              break;
+1501   2                      case 19:
+1502   2                              LED_DAT = 0xFC;                 //all off       
+1503   2                              led_blink(LED_DAT);
+1504   2                              break;
+1505   2                      case 22:
+1506   2                              LED_DAT = 0xF8;                 //all off       
+1507   2                              led_blink(LED_DAT);
+1508   2                              break;
+1509   2                      case 25:
+1510   2                              LED_DAT = 0xF8;                 //all off       
+1511   2                              led_blink(LED_DAT);
+1512   2                              break;
+1513   2                      case 28:
+1514   2                              LED_DAT = 0xF8;                 //all off       
+1515   2                              led_blink(LED_DAT);
+1516   2                              break;
+1517   2                      case 31:
+1518   2                              LED_DAT = 0xF8;                 //all off       
+1519   2                              led_blink(LED_DAT);
+1520   2                              break;
+1521   2                      default:
+1522   2                              break;
+1523   2                              
+1524   2              }
+1525   1      }
+1526          
+1527          void led_blink(unsigned char led_dat)
+1528          {
+1529   1              switch(led_blink_state)
+1530   1              {
+1531   2                      case 0: 
+1532   2                              t12_data = 1800;        // x 5 milisecond
+1533   2                              time_12 = 1;
+1534   2                              led_blink_state =10;
+1535   2                              break;
+1536   2                      case 10:        
+1537   2                              if(time_12==0)
+1538   2                              {
+1539   3                               // on                          
+1540   3                                      P2 = (P2 & ~0x07) | (led_dat & 0x07);   // preserve port 2 bit 3-7
+1541   3                                      led_blink_state = 20;
+1542   3                              }
+1543   2                              break;
+C51 COMPILER V7.20   SEQUENCE                                                              06/11/2009 12:00:43 PAGE 26  
+
+1544   2                      case 20:        
+1545   2                              t12_data = 120;                                         // off state
+1546   2                              time_12 = 1;
+1547   2                              led_blink_state = 30;
+1548   2                              break;
+1549   2                      case 30:        
+1550   2                              if(time_12==0)
+1551   2                              {
+1552   3                                      switch(lift_data)
+1553   3                                      {
+1554   4                                              case 0x19:
+1555   4                                                      LED_BIT2 = 1;                   //off (blinking)
+1556   4                                                      LED_BIT1 = 1;                   //off (blinking)
+1557   4                                                      LED_BIT0 = 0;                   //on  (static)
+1558   4                                                      break;
+1559   4                                              case 0x1C:
+1560   4                                                      LED_BIT2 = 1;                   //off (blinking)
+1561   4                                                      LED_BIT1 = 0;                   //on  (static) 
+1562   4                                                      LED_BIT0 = 1;                   //off (blinking)
+1563   4                                                      break;
+1564   4                                              case 0x1F:
+1565   4                                                      LED_BIT2 = 1;                   //off (blinking)
+1566   4                                                      LED_BIT1 = 0;                   //off (static)
+1567   4                                                      LED_BIT0 = 0;                   //off (static)
+1568   4                                                      break;
+1569   4                                              default:
+1570   4                                                      P2 = (P2 & ~0x07) | 0x07;
+1571   4                                                      break;
+1572   4                                      }
+1573   3                                      led_blink_state =40;
+1574   3                              }                               
+1575   2                              break;
+1576   2                      case 40:        
+1577   2                              led_blink_state = 0;
+1578   2                              break;
+1579   2                      default:        
+1580   2                              break;                  
+1581   2              }
+1582   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3041    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    485    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     57    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      9    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

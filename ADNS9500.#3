@@ -1,0 +1,349 @@
+//------------------------------------------------------------------------------------
+// Includes
+//------------------------------------------------------------------------------------
+#include <intrins.h>
+#include "c8051f3xx.h"
+//#include "adns9500_srom_8E.h"
+#include "ADNS9500.h"
+#include "delay.h"
+#include "timer.h"
+#include "spi.h"
+#include "F340_FlashPrimitives.h"
+
+//------------------------------------------------------------------------------------
+// CONSTANT
+//------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------
+// Global VARIABLES
+//------------------------------------------------------------------------------------
+data unsigned char lift_data;
+data unsigned char CFG0_data, CFG1_data;
+
+
+//------------------------------------------------------------------------------------
+// Function PROTOTYPES
+//------------------------------------------------------------------------------------
+void ADNS9500_Init(void);
+void ADNS9500_check_sequence(void);
+void ADNS9500_power_up_sequence(void);
+void ANDS9500_SROM_load_sequence(void);
+void ADNS9500_load_resolution(void);
+void ANDS9500_SROM_Download(void);
+void ADNS9500_laser_power_enable_sequence(void);
+unsigned char ADNS9500_SROM_Check(void);
+void A9500_OTP_WR(void);
+
+
+//------------------------------------------------------------------------------------
+// External Function PROTOTYPES
+//------------------------------------------------------------------------------------
+extern void update_led_status(unsigned char res);
+extern void WTD_Reload(void);
+
+
+//------------------------------------------------------------------------------------
+// Main Functions
+//------------------------------------------------------------------------------------
+
+void ADNS9500_Init(void)
+{
+	unsigned char spi_array[10];		
+
+//	EA = 0;
+
+	ADNS9500_check_sequence();
+	ADNS9500_power_up_sequence();
+	ANDS9500_SROM_load_sequence();
+	ADNS9500_load_resolution();
+	
+//	spi_write_sensor(ADNS9500_LIFT_DETECTION_THR_ADDR, 0x10);
+	lift_data = spi_read_sensor(ADNS9500_LIFT_DETECTION_THR_ADDR); //default at 0x10
+	
+	// Just read out for debugging purpose
+	spi_array[0] = spi_read_sensor(ADNS9500_MOTION_ADDR);
+	spi_array[1] = spi_read_sensor(ADNS9500_LASER_CTRL0_ADDR);
+	spi_array[2] = spi_read_sensor(ADNS9500_LASER_CTRL1_ADDR);
+	spi_array[3] = spi_read_sensor(ADNS9500_LP_CFG0_ADDR);
+	spi_array[4] = spi_read_sensor(ADNS9500_LP_CFG1_ADDR);
+	_nop_();
+
+	WTD_Reload();	// Reload WatchDog
+
+//	EA = 1;
+
+//	CFG0_data = flash_data[0];
+//	CFG1_data = flash_data[1];
+
+//	if(CFG0_data != (~CFG1_data))
+//	{
+//		CFG0_data = DEFAULT_CFG0;
+//		CFG1_data = DEFAULT_CFG1;
+//	}
+//	spi_write_sensor(ADNS9500_LP_CFG0_ADDR, CFG0_data);
+//	spi_write_sensor(ADNS9500_LP_CFG1_ADDR, CFG1_data);
+
+}
+
+
+//------------------------------------------------------------------------------------
+// Sub Functions 
+//------------------------------------------------------------------------------------
+void ADNS9500_check_sequence(void)
+{
+	//--------------------------------------
+	// Local VARIABLES
+	//--------------------------------------
+	unsigned char spi_array[10];	
+
+	//--------------------------------------
+	// Local Sequence
+	//--------------------------------------
+	EA = 0;
+	spi_array[0] = spi_read_sensor(ADNS9500_PRODUCTID_ADDR);			
+	spi_array[1] = spi_read_sensor(ADNS9500_REVISIONID_ADDR);
+	spi_array[2] = spi_read_sensor(ADNS9500_INVERSE_PRODUCT_ID_ADDR);
+	EA = 1;
+}
+
+
+void ADNS9500_power_up_sequence(void)
+{
+	//--------------------------------------
+	// Local VARIABLES
+	//--------------------------------------
+	unsigned char spi_array[10];	
+
+	//--------------------------------------
+	// Local Sequence
+	//--------------------------------------
+	EA = 0;
+	spi_write_sensor(ADNS9500_POWER_UP_RESET_ADDR, ADNS9500_POWER_UP_RESET);
+	EA = 1;
+
+	//delay_ms(50);
+	t1_data = TIMER1_50_MILISEC;	// x 0.5ms
+	time_1 = 1;
+	while(time_1 == 1);
+
+	EA = 0;
+	spi_array[0] = spi_read_sensor(ADNS9500_MOTION_ADDR);
+	spi_array[1] = spi_read_sensor(ADNS9500_DELTAX_L_ADDR);
+	spi_array[2] = spi_read_sensor(ADNS9500_DELTAX_H_ADDR);
+	spi_array[3] = spi_read_sensor(ADNS9500_DELTAY_L_ADDR);
+	spi_array[4] = spi_read_sensor(ADNS9500_DELTAY_H_ADDR);
+	EA = 1;
+}
+
+
+void ANDS9500_SROM_load_sequence(void)
+{
+	//--------------------------------------
+	// Local VARIABLES
+	//--------------------------------------
+	unsigned char spi_temp;
+	//--------------------------------------
+	// Local Sequence
+	//--------------------------------------
+#ifdef OTP_ENABLED
+//	A9500_OTP_WR();
+
+#endif
+	spi_temp = FLASH_ByteRead(SROM_ADDR + 0x0C02);
+
+	if(spi_temp == 1)
+	{
+		ANDS9500_SROM_Download();
+
+		//delay_ms(1);
+		t1_data = TIMER1_1_MILISEC;	// x 0.5ms
+		time_1 = 1;
+		while(time_1 == 1);
+
+		ADNS9500_SROM_Check();
+		ADNS9500_laser_power_enable_sequence();
+	}
+}
+
+
+void ADNS9500_load_resolution(void)
+{
+	//--------------------------------------
+	// Local VARIABLES
+	//--------------------------------------
+	//--------------------------------------
+	// Local Sequence
+	//--------------------------------------
+	EA = 0;
+	resolution = spi_read_eeprom(0x0000);										//load default resolution
+	spi_write_sensor(ADNS9500_CONFIGURATION_I_ADDR, resolution); 
+	EA = 1;
+	update_led_status(resolution);
+}
+
+
+void ANDS9500_SROM_Download(void)
+{
+	unsigned int temp_int;
+
+	srom_size.b[0] = FLASH_ByteRead(SROM_ADDR + 0x0C00);
+	srom_size.b[1] = FLASH_ByteRead(SROM_ADDR + 0x0C01);
+
+	EA = 0;
+	spi_write_sensor(ADNS9500_CONFIGURATION_IV_ADDR, ADNS9500_SROM_SIZE_3_0K); 	// Select 3k SROM size
+	EA = 1;
+
+//	delay_ms(1);	
+	t1_data = TIMER1_1_MILISEC;	// x 0.5ms
+	time_1 = 1;
+	while(time_1 == 1);
+
+	EA = 0;
+	spi_write_sensor(ADNS9500_SROM_ENABLE_ADDR, 0x1D); 
+	EA = 1;
+
+//	delay_ms(10);																// Wait 1 frame period
+	t1_data = TIMER1_10_MILISEC;	// x 0.5ms
+	time_1 = 1;
+	while(time_1 == 1);
+
+	EA = 0;
+	spi_write_sensor(ADNS9500_SROM_ENABLE_ADDR, 0x18);
+	EA = 1;
+	delay_us(120);
+
+	NCS = 0;	
+
+	delay_us(10);
+
+	EA = 0;
+	spi_transfer(ADNS9500_SROM_LOAD_BURST_ADDR | 0x80);
+	EA = 1;
+
+//	delay_ms(10);
+	t1_data = TIMER1_10_MILISEC;	// x 0.5ms
+	time_1 = 1;
+	while(time_1 == 1);
+
+	EA = 0;
+	for(temp_int = 0; temp_int < srom_size.w; temp_int++)
+	{	
+		spi_transfer(FLASH_ByteRead(SROM_ADDR + temp_int));
+		delay_us(50);
+	}
+	EA = 1;
+
+	delay_us(200);
+
+	NCS = 1;
+}
+
+
+void ADNS9500_laser_power_enable_sequence(void)
+{
+	//--------------------------------------
+	// Local VARIABLES
+	//--------------------------------------
+	unsigned char temp;	
+
+	//--------------------------------------
+	// Local Sequence
+	//--------------------------------------
+	EA = 0;
+	temp = spi_read_sensor(ADNS9500_LASER_CTRL0_ADDR);
+	spi_write_sensor(ADNS9500_LASER_CTRL0_ADDR, (temp & 0xFE));				// Enable Laser Power
+	EA = 1;
+}
+
+
+unsigned char ADNS9500_SROM_Check(void)
+{
+	unsigned char spi_array[10];
+
+	EA = 0;
+	spi_array[0] = spi_read_sensor(ADNS9500_SROM_ID_ADDR);					// Check SROM version
+	EA = 1;
+	delay_us(10);
+
+	EA = 0;
+	spi_array[1] = spi_read_sensor(ADNS9500_MOTION_ADDR);					// Check Fault
+	EA = 1;
+	delay_us(10);
+
+	EA = 0;
+	if((spi_array[1] & ADNS9500_MOTION_FAULT) == ADNS9500_MOTION_FAULT)
+	{
+		EA = 1;
+		return 0;
+	}
+	EA = 1;
+	
+	EA = 0;
+	spi_write_sensor(ADNS9500_SROM_ENABLE_ADDR, 0x15);						// Check CRC Test
+	EA = 1;
+
+	//delay_ms(50);															// Wait 1 frame period
+	t1_data = TIMER1_50_MILISEC;	// x 0.5ms
+	time_1 = 1;
+	while(time_1 == 1);
+
+	EA = 0;
+	spi_array[2] = spi_read_sensor(ADNS9500_DATA_OUT_LOWER_ADDR);			
+	delay_us(10);
+
+	spi_array[3] = spi_read_sensor(ADNS9500_DATA_OUT_UPPER_ADDR);			
+	delay_us(10);
+	EA = 1;
+
+	EA = 0;
+	if((spi_array[2] != 0xEF) || (spi_array[3] != 0xBE))
+	{
+		EA = 1;
+		return 0;
+	}
+	EA = 1;
+
+	EA = 0;
+	spi_write_sensor(ADNS9500_OBSERVATION_ADDR, 0x00);						// Clear Observation Register
+	delay_us(1);
+
+	spi_array[4] = spi_read_sensor(ADNS9500_OBSERVATION_ADDR);				// Check if SROM is running
+	EA = 1;
+	if((spi_array[4] & 0x40) == 0)
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
+#ifdef OTP_ENABLED
+void A9500_OTP_WR(void)
+{
+	unsigned char spi_array[10];
+
+	spi_write_sensor(0x30, 0x44); 			// Enable OTP read/write
+	spi_write_sensor(0x38, 0x65); 			// Laser setting write enabled
+	spi_write_sensor(0x37, 0x80);			// {Range, Range_C, 0, 0, 0, 0, 0, 0)
+	spi_write_sensor(0x37, DEFAULT_CFG0);	// CFG0
+	spi_write_sensor(0x37, DEFAULT_CFG1);	// CFG1
+
+	spi_write_sensor(0x30, 0x44); 			// Enable OTP read/write
+	spi_write_sensor(0x38, 0x66); 			// Laser setting read enabled
+	spi_array[0] = spi_read_sensor(0x37);	// {Range, Range_C, 0, 0, 0, 0, 0, 0)
+	spi_array[1] = spi_read_sensor(0x37);	// CFG0
+	spi_array[2] = spi_read_sensor(0x37);	// CFG1
+	
+	spi_write_sensor(0x30, 0x44); 			// Enable OTP read/write
+	spi_write_sensor(0x38, 0x67); 			// Laser Index No. read enabled
+	spi_array[3] = spi_read_sensor(0x37);	// Index No.
+
+	spi_write_sensor(0x30, 0x44); 			// Enable OTP read/write
+	spi_write_sensor(0x32, 0x40); 
+	spi_write_sensor(0x31, 0x72); 
+	spi_array[4] = spi_read_sensor(0x36);	// Return 0xC1 if A9500 is used
+
+	_nop_();
+}
+#endif
+

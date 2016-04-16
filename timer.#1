@@ -1,0 +1,464 @@
+/*
+###############################################################################
+@copyright			: 	Affinext Technology Sdn Bhd.
+@filename 			: 	timer.C
+@version			: 	1.0.0
+Programmer(s) 		: 	cc looi
+Created 			: 	11/10/2005
+Description 		: 	timer implemention file
+                 
+Modified History	: 	
+
+###############################################################################
+*/
+
+//------------------------------------------------------------------------------------
+// Includes
+//------------------------------------------------------------------------------------
+
+#include "c8051f3xx.h"
+
+//------------------------------------------------------------------------------------
+// CONSTANT
+//------------------------------------------------------------------------------------
+#define SYSCLK24000000
+//#define SYSCLK22118400 		// SYSCLK frequency in Hz
+//#define SYSCLK1105920 		// SYSCLK frequency in Hz
+
+#define TIMER0
+#define TIMER1
+#define TIMER2
+#define TIMER3
+#define TIMER4
+#define TIMER5
+#define TIMER6
+#define TIMER7
+#define TIMER8
+#define TIMER9
+#define TIMER10
+#define TIMER11
+#define TIMER12
+#define TIMER13
+//#define KEYPAD
+//#define LCD
+
+//------------------------------------------------------------------------------------
+// Global VARIABLES
+//------------------------------------------------------------------------------------
+#ifdef TIMER0
+unsigned int data t0_data;
+bit bdata time_0;
+#endif
+#ifdef TIMER1
+unsigned int data t1_data;
+bit bdata time_1;
+#endif
+#ifdef TIMER2
+unsigned int data t2_data;
+bit bdata time_2;
+#endif
+#ifdef TIMER3
+unsigned int data t3_data;
+bit bdata time_3;
+#endif
+#ifdef TIMER4
+unsigned int data t4_data;
+bit bdata time_4;
+#endif
+#ifdef TIMER5
+unsigned int data t5_data;
+bit bdata time_5;
+#endif
+#ifdef TIMER6
+unsigned int data t6_data;
+bit bdata time_6;
+#endif
+#ifdef TIMER7
+unsigned int data t7_data;
+bit bdata time_7;
+#endif
+#ifdef TIMER8
+unsigned int data t8_data;
+bit bdata time_8;
+#endif
+#ifdef TIMER9
+unsigned int data t9_data;
+bit bdata time_9;
+#endif
+#ifdef TIMER10
+unsigned int data t10_data;
+bit bdata time_10;
+#endif
+#ifdef TIMER11
+unsigned int data t11_data;
+bit bdata time_11;
+#endif
+#ifdef TIMER12
+unsigned int data t12_data;
+bit bdata time_12;
+#endif
+#ifdef TIMER13
+unsigned int data t13_data;
+bit bdata time_13;
+#endif
+#ifdef KEYPAD
+unsigned int data tkeypad_data;
+bit bdata time_keypad;
+#endif
+
+#ifdef LCD
+unsigned int data tlcd_data;
+bit bdata time_lcd;
+#endif
+
+//------------------------------------------------------------------------------------
+// Function PROTOTYPES
+//------------------------------------------------------------------------------------
+void Timer0Init(void);
+
+//------------------------------------------------------------------------------------
+// Timer0Init
+//------------------------------------------------------------------------------------
+void Timer0Init(void)
+{
+ 	// Timer0
+	
+	TMOD   	|= 0x01;	// TMOD: timer 0, mode 1, 16-bit manual reload
+	
+	#ifdef SYSCLK24000000
+	//	TH0 = 0xf8;			// 1ms timer for 24.5Mhz crystal
+	//	TL0 = 0x30;			// 1ms timer for 24.5Mhz crystal
+	TH0 = 0xfc;			// 0.5ms timer for 24Mhz crystal	
+	TL0 = 0x18;			// 0.5ms timer for 24Mhz cyrstal	
+						
+	#else
+		#ifdef SYSCLK22118400
+	 		TH0 = 0xb8;			// 10ms timer for 22.1184Mhz crystal
+			TL0 = 0x00;			// 10ms timer for 22.1184Mhz crystal
+		#else 
+			#ifdef SYSCLK1105920
+	 			TH0 = 0xdc;			// 10ms timer for 11.0592Mhz crystal
+				TL0 = 0x00;			// 10ms timer for 11.0592Mhz crystal
+			#else
+	 			TH0 = 0xBE;			// 10ms for 20Mhz crystal
+				TL0 = 0xE5;
+			#endif
+		#endif
+	#endif
+  						
+	ET0 = 1;			// Enable Timer0 interrupt
+	TR0 = 1;        	// start Timer0
+   	
+	CKCON 	|= 0x00;    // Timer01 uses SYSCLK/12 as time base, 
+}
+
+
+//------------------------------------------------------------------------------------
+// Timer0Isr
+//------------------------------------------------------------------------------------
+// This routine changes the sequence state Timer0 overflows.
+//
+// NOTE: The SFRPAGE register will automatically be switched to the Timer0 Page
+// When an interrupt occurs.  SFRPAGE will return to its previous setting on exit
+// from this routine.
+//
+void Timer0Isr (void) interrupt 1 using 1
+{
+	TR0 = 0;                          
+
+	#ifdef SYSCLK24000000
+//		TH0 = 0xf8;			// 1ms timer for 24.5Mhz crystal
+//		TL0 = 0x30;			// 1ms timer for 24.5Mhz crystal
+		TH0 = 0xfc;			// 0.5ms timer for 24Mhz crystal	
+		TL0 = 0x18;			// 0.5ms timer for 24Mhz cyrstal	
+	#else
+		#ifdef SYSCLK22118400
+	 		TH0 = 0xb8;			// 10ms timer for 22.1184Mhz crystal
+			TL0 = 0x00;			// 10ms timer for 22.1184Mhz crystal
+		#else 
+			#ifdef SYSCLK1105920
+	 			TH0 = 0xdc;			// 10ms timer for 11.0592Mhz crystal
+				TL0 = 0x00;			// 10ms timer for 11.0592Mhz crystal
+			#else
+	 			TH0 = 0xBE;			// 10ms for 20Mhz crystal
+				TL0 = 0xE5;
+			#endif
+		#endif
+	#endif
+
+  	TR0 = 1;     		// start Timer0
+
+	#ifdef TIMER0
+		if(time_0 == 1)
+		{
+	  		if(t0_data == 0) 
+			{
+				time_0 = 0;
+			}
+			else 
+			{
+				t0_data--;
+		        if(t0_data == 0)
+				{
+					time_0 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER1
+		if(time_1 == 1)
+		{
+	  		if(t1_data == 0)
+			{
+				time_1 = 0;
+			}
+			else 
+			{
+				t1_data--;
+		        if(t1_data == 0)
+				{
+					time_1 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER2
+		if(time_2 == 1)
+		{
+	  		if(t2_data == 0)
+			{
+				time_2 = 0;
+			}
+			else 
+			{
+				t2_data--;
+		        if(t2_data == 0)
+				{
+					time_2 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER3
+		if(time_3 == 1)
+		{
+	  		if(t3_data == 0)
+			{
+				time_3 = 0;
+			}
+			else 
+			{
+				t3_data--;
+		        if(t3_data==0)
+				{
+					time_3=0;
+				}
+			}				
+		}
+
+	#endif
+	#ifdef TIMER4
+		if(time_4 == 1)
+		{
+	  		if(t4_data == 0)
+			{
+				time_4 = 0;
+			}
+			else 
+			{
+				t4_data--;
+		        if(t4_data == 0)
+				{
+					time_4 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER5
+		if(time_5 == 1)
+		{
+	  		if(t5_data == 0)
+			{
+				time_5 = 0;
+			}
+			else 
+			{
+				t5_data--;
+		        if(t5_data == 0)
+				{
+					time_5 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER6
+		if(time_6 == 1)
+		{
+	  		if(t6_data == 0)
+			{
+				time_6 = 0;
+			}
+			else 
+			{
+				t6_data--;
+		        if(t6_data == 0)
+				{
+					time_6 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER7
+		if(time_7 == 1)
+		{
+	  		if(t7_data == 0)
+			{
+				time_7 = 0;
+			}
+			else 
+			{
+				t7_data--;
+		        if(t7_data == 0)
+				{
+					time_7 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER8
+		if(time_8 == 1)
+		{
+	  		if(t8_data == 0)
+			{
+				time_8 = 0;
+			}
+			else 
+			{
+				t8_data--;
+		        if(t8_data == 0)
+				{
+					time_8 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER9
+		if(time_9 == 1)
+		{
+	  		if(t9_data == 0)
+			{
+				time_9 = 0;
+			}
+			else 
+			{
+				t9_data--;
+		        if(t9_data == 0)
+				{
+					time_9 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER10
+		if(time_10 == 1)
+		{
+	  		if(t10_data == 0)
+			{
+				time_10 = 0;
+			}
+			else 
+			{
+				t10_data--;
+		        if(t10_data == 0)
+				{
+					time_10 = 0;
+				}
+			}				
+		}
+	#endif
+		#ifdef TIMER11
+		if(time_11 == 1)
+		{
+	  		if(t11_data == 0)
+			{
+				time_11 = 0;
+			}
+			else 
+			{
+				t11_data--;
+		        if(t11_data == 0)
+				{
+					time_11 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER12
+		if(time_12 == 1)
+		{
+	  		if(t12_data == 0)
+			{
+				time_12 = 0;
+			}
+			else 
+			{
+				t12_data--;
+		        if(t12_data == 0)
+				{
+					time_12 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef TIMER13
+		if(time_13 == 1)
+		{
+	  		if(t13_data == 0)
+			{
+				time_13 = 0;
+			}
+			else 
+			{
+				t13_data--;
+		        if(t13_data == 0)
+				{
+					time_13 = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef KEYPAD
+		if(time_keypad == 1)
+		{
+	  		if(tkeypad_data == 0)
+			{
+				time_keypad = 0;
+			}
+			else 
+			{
+				tkeypad_data--;
+		        if(tkeypad_data == 0)
+				{
+					time_keypad = 0;
+				}
+			}				
+		}
+	#endif
+	#ifdef LCD
+		if(time_lcd == 1)
+		{
+	  		if(tlcd_data == 0)
+			{
+				time_lcd = 0;
+			}
+			else 
+			{
+				tlcd_data--;
+		        if(tlcd_data == 0)
+				{
+					time_lcd = 0;
+				}
+			}				
+		}
+	#endif
+}

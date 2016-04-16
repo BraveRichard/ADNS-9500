@@ -1,0 +1,119 @@
+
+//------------------------------------------------------------------------------------
+// Constant
+//------------------------------------------------------------------------------------
+//#define OTP_ENABLED
+#define FIRMWARE_VERSION_MAJOR	1
+#define FIRMWARE_VERSION_MINOR	0
+#define CUSTOMER 		" "
+#define SAMPLE_TYPE 	" "
+
+
+#define PIXEL_NUMBER 		900
+#define DEFAULT_SROM_ID		0x87
+
+#define MSB		0
+#define LSB		1
+
+#define SROM_TEMP_ADDR		0x5A00
+#define SROM_ADDR			0x6800
+
+#define TIMER1_1_MILISEC	2
+#define TIMER1_10_MILISEC	20			
+#define TIMER1_50_MILISEC	100			
+#define TIMER1_1_SEC		2000			
+
+#define MIN_RESOLUTION_SETTINR	1
+#define MAX_RESOLUTION_SETTINR	56
+
+//------------------------------------------------------------------------------------
+// Pinout
+//------------------------------------------------------------------------------------
+
+//sbit GND1		= P0^0;		
+sbit SCLK		= P0^1;	
+sbit MISO		= P0^2;		
+sbit MOSI		= P0^3;		
+sbit NCS		= P0^4;		
+sbit MOTION		= P0^5;		
+sbit EE_NCS		= P0^6;				
+//sbit GND2		= P0^7;		
+
+sbit ZB			= P1^0;		
+sbit ZA			= P1^1;		
+sbit LEFT_SW	= P1^2;		
+sbit RIGHT_SW	= P1^3;		
+sbit MID_SW		= P1^4;		
+sbit CPI_P		= P1^5;		
+sbit CPI_M		= P1^6;		
+//sbit GND3 = P1^7;		
+
+sbit LED_BIT2	= P2^0;		
+sbit LED_BIT1	= P2^1;		
+sbit LED_BIT0	= P2^2;		
+//sbit GND4		= P2^3;		
+//sbit GND5		= P2^4;		
+//sbit GND6		= P2^5;
+//sbit GND7		= P2^6;
+//sbit GND8		= P2^7;
+
+#define LED_HB LED_BIT2
+
+
+//------------------------------------------------------------------------------------
+// Union Define
+//------------------------------------------------------------------------------------
+typedef union
+{
+	unsigned long dw;
+	unsigned int w[2];
+	unsigned char b[4];
+}U32;
+
+typedef union
+{
+	unsigned int w;
+	unsigned char b[2];
+}U16;
+
+typedef union
+{
+	signed long dw;
+	unsigned int w[2];
+	unsigned char b[4];
+}S32;
+
+typedef union
+{
+	signed int w;
+	unsigned char b[2];
+}S16;
+
+
+//------------------------------------------------------------------------------------
+// Structure Define
+//------------------------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------------
+// External VARIABLES
+//------------------------------------------------------------------------------------
+extern bit received;
+extern data unsigned char resolution;
+extern data unsigned char IN_PACKET[10];
+extern data unsigned char OUT_PACKET[5];
+extern data unsigned char grab_image;
+extern xdata unsigned char image_buffer[452];
+
+extern U16 srom_size;
+extern unsigned char srom_status;
+extern unsigned int srom_addr, srom_count;
+extern bit srom_start, srom_success;
+extern bit mouse_enabled;
+
+
+//------------------------------------------------------------------------------------
+// External Function
+//------------------------------------------------------------------------------------
+extern void WTD_Reload(void);
+

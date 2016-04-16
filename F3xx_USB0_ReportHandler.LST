@@ -1,0 +1,246 @@
+C51 COMPILER V7.20   F3XX_USB0_REPORTHANDLER                                               06/11/2009 12:00:42 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE F3XX_USB0_REPORTHANDLER
+OBJECT MODULE PLACED IN F3xx_USB0_ReportHandler.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe F3xx_USB0_ReportHandler.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          //-----------------------------------------------------------------------------
+   2          // USB0_ReportHandler.c
+   3          //-----------------------------------------------------------------------------
+   4          // Copyright 2005 Silicon Laboratories, Inc.
+   5          // http://www.silabs.com
+   6          //
+   7          // Program Description:
+   8          //
+   9          // Contains functions and variables dealing with Input and Output
+  10          // HID reports.
+  11          //
+  12          // How To Test:    See Readme.txt
+  13          //
+  14          //
+  15          // FID:
+  16          // Target:         C8051F340
+  17          // Tool chain:     Keil C51 7.50 / Keil EVAL C51
+  18          //                 Silicon Laboratories IDE version 2.6
+  19          // Command Line:   See Readme.txt
+  20          // Project Name:   F3xx_MouseExample
+  21          //
+  22          // Release 1.1
+  23          //    -Minor code comment changes
+  24          //    -16 NOV 2006
+  25          // Release 1.0
+  26          //    -Initial Revision (PD)
+  27          //    -07 DEC 2005
+  28          //
+  29          
+  30          
+  31          // ----------------------------------------------------------------------------
+  32          // Header files
+  33          // ----------------------------------------------------------------------------
+  34          
+  35          #include "F3xx_USB0_ReportHandler.h"
+  36          #include "F3xx_USB0_InterruptServiceRoutine.h"
+  37          #include "F3xx_USB0_Mouse.h"
+  38          
+  39          
+  40          // ----------------------------------------------------------------------------
+  41          // Local Function Prototypes
+  42          // ----------------------------------------------------------------------------
+  43          
+  44          // ****************************************************************************
+  45          // Add custom Report Handler Prototypes Here
+  46          // ****************************************************************************
+  47          
+  48          void IN_Report(void);
+  49          void OUT_Report(void);
+  50          
+  51          // ----------------------------------------------------------------------------
+  52          // Local Definitions
+  53          // ----------------------------------------------------------------------------
+  54          
+  55          // ****************************************************************************
+C51 COMPILER V7.20   F3XX_USB0_REPORTHANDLER                                               06/11/2009 12:00:42 PAGE 2   
+
+  56          // Set Definitions to sizes corresponding to the number of reports
+  57          // ****************************************************************************
+  58          
+  59          #define IN_VECTORTABLESize 1
+  60          #define OUT_VECTORTABLESize 1
+  61          
+  62          // ----------------------------------------------------------------------------
+  63          // Global Constant Declaration
+  64          // ----------------------------------------------------------------------------
+  65          
+  66          
+  67          // ****************************************************************************
+  68          // Link all Report Handler functions to corresponding Report IDs
+  69          // ****************************************************************************
+  70          
+  71          const VectorTableEntry code IN_VECTORTABLE[IN_VECTORTABLESize] =
+  72          {
+  73             // FORMAT: Report ID, Report Handler
+  74             0, IN_Report
+  75          };
+  76          
+  77          // ****************************************************************************
+  78          // Link all Report Handler functions to corresponding Report IDs
+  79          // ****************************************************************************
+  80          const VectorTableEntry code OUT_VECTORTABLE[OUT_VECTORTABLESize] =
+  81          {
+  82             // FORMAT: Report ID, Report Handler
+  83             0, OUT_Report
+  84          };
+  85          
+  86          
+  87          // ----------------------------------------------------------------------------
+  88          // Global Variable Declaration
+  89          // ----------------------------------------------------------------------------
+  90          
+  91          BufferStructure IN_BUFFER, OUT_BUFFER;
+  92          
+  93          // ----------------------------------------------------------------------------
+  94          // Local Functions
+  95          // ----------------------------------------------------------------------------
+  96          
+  97          // ****************************************************************************
+  98          // Add all Report Handler routines here
+  99          // ****************************************************************************
+ 100          
+ 101          
+ 102          // ****************************************************************************
+ 103          // For Input Reports:
+ 104          // Point IN_BUFFER.Ptr to the buffer containing the report
+ 105          // Set IN_BUFFER.Length to the number of bytes that will be
+ 106          // transmitted.
+ 107          //
+ 108          // REMINDER:
+ 109          // Systems using more than one report must define Report IDs
+ 110          // for each report.  These Report IDs must be included as the first
+ 111          // byte of an IN report.
+ 112          // Systems with Report IDs should set the FIRST byte of their buffer
+ 113          // to the value for the Report ID
+ 114          // AND
+ 115          // must transmit Report Size + 1 to include the full report PLUS
+ 116          // the Report ID.
+ 117          //
+C51 COMPILER V7.20   F3XX_USB0_REPORTHANDLER                                               06/11/2009 12:00:42 PAGE 3   
+
+ 118          // ****************************************************************************
+ 119          
+ 120          
+ 121          void IN_Report(void)
+ 122          {
+ 123   1      }
+ 124          
+ 125          
+ 126          // ****************************************************************************
+ 127          // For Output Reports:
+ 128          // Data contained in the buffer OUT_BUFFER.Ptr will not be
+ 129          // preserved after the Report Handler exits.
+ 130          // Any data that needs to be preserved should be copyed from
+ 131          // the OUT_BUFFER.Ptr and into other user-defined memory.
+ 132          //
+ 133          // ****************************************************************************
+ 134          
+ 135          void OUT_Report(void)
+ 136          {
+ 137   1      }
+ 138          
+ 139          // ----------------------------------------------------------------------------
+ 140          // Global Functions
+ 141          // ----------------------------------------------------------------------------
+ 142          
+ 143          // ****************************************************************************
+ 144          // Configure Setup_OUT_BUFFER
+ 145          //
+ 146          // Reminder:
+ 147          // This function should set OUT_BUFFER.Ptr so that it
+ 148          // points to an array in data space big enough to store
+ 149          // any output report.
+ 150          // It should also set OUT_BUFFER.Length to the size of
+ 151          // this buffer.
+ 152          //
+ 153          // ****************************************************************************
+ 154          
+ 155          // ----------------------------------------------------------------------------
+ 156          // Vector Routines
+ 157          // ----------------------------------------------------------------------------
+ 158          
+ 159          // ----------------------------------------------------------------------------
+ 160          // ReportHandler_IN...
+ 161          // ----------------------------------------------------------------------------
+ 162          //
+ 163          // Return Value - None
+ 164          // Parameters - Report ID
+ 165          //
+ 166          // These functions match the Report ID passed as a parameter
+ 167          // to an Input Report Handler.
+ 168          // the ...FG function is called in the SendPacket foreground routine,
+ 169          // while the ...ISR function is called inside the USB ISR.  A lock
+ 170          // is set whenever one function is called to prevent a call from the
+ 171          // other from disrupting the routine.
+ 172          // However, this should never occur, as interrupts are disabled by SendPacket
+ 173          // before USB operation begins.
+ 174          // ----------------------------------------------------------------------------
+ 175          void ReportHandler_IN_ISR(unsigned char R_ID)
+ 176          {
+ 177   1         unsigned char index;
+ 178   1      
+ 179   1         index = 0;
+C51 COMPILER V7.20   F3XX_USB0_REPORTHANDLER                                               06/11/2009 12:00:42 PAGE 4   
+
+ 180   1      
+ 181   1         while(index <= IN_VECTORTABLESize)
+ 182   1         {
+ 183   2            // check to see if Report ID passed into function
+ 184   2                // matches the Report ID for this entry in the Vector Table
+ 185   2            if(IN_VECTORTABLE[index].ReportID == R_ID)
+ 186   2            {
+ 187   3               IN_VECTORTABLE[index].hdlr();
+ 188   3               break;
+ 189   3            }
+ 190   2      
+ 191   2            // if Report IDs didn't match, increment the index pointer
+ 192   2            index++;
+ 193   2         }
+ 194   1      
+ 195   1      }
+ 196          void ReportHandler_IN_Foreground(unsigned char R_ID)
+ 197          {
+ 198   1         unsigned char index;
+ 199   1      
+ 200   1         index = 0;
+ 201   1      
+ 202   1         while(index <= IN_VECTORTABLESize)
+ 203   1         {
+ 204   2            // check to see if Report ID passed into function
+ 205   2            // matches the Report ID for this entry in the Vector Table
+ 206   2            if(IN_VECTORTABLE[index].ReportID == R_ID)
+ 207   2            {
+ 208   3               IN_VECTORTABLE[index].hdlr();
+ 209   3               break;
+ 210   3            }
+ 211   2      
+ 212   2            // if Report IDs didn't match, increment the index pointer
+ 213   2            index++;
+ 214   2         }
+ 215   1      
+ 216   1      }
+ 217          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    192    ----
+   CONSTANT SIZE    =      8    ----
+   XDATA SIZE       =     12    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

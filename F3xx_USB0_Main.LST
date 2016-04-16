@@ -1,0 +1,81 @@
+C51 COMPILER V7.20   F3XX_USB0_MAIN                                                        06/11/2009 12:00:42 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE F3XX_USB0_MAIN
+OBJECT MODULE PLACED IN F3xx_USB0_Main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe F3xx_USB0_Main.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          //-----------------------------------------------------------------------------
+   2          // F3xx_USB_Main.c
+   3          //-----------------------------------------------------------------------------
+   4          // Copyright 2005 Silicon Laboratories, Inc.
+   5          // http://www.silabs.com
+   6          //
+   7          // Program Description:
+   8          //
+   9          // This application will communicate with a PC across the USB interface.
+  10          // The device will appear to be a mouse, and will manipulate the cursor
+  11          // on screen.
+  12          //
+  13          // How To Test:    See Readme.txt
+  14          //
+  15          //
+  16          // FID:
+  17          // Target:         C8051F32x/C8051F340
+  18          // Tool chain:     Keil C51 7.50 / Keil EVAL C51
+  19          //                 Silicon Laboratories IDE version 2.6
+  20          // Command Line:   See Readme.txt
+  21          // Project Name:   F3xx_MouseExample
+  22          //
+  23          //
+  24          // Release 1.1
+  25          //    -Minor code comment changes
+  26          //    -16 NOV 2006
+  27          // Release 1.0
+  28          //    -Initial Revision (PD)
+  29          //    -07 DEC 2005
+  30          //
+  31          
+  32          //-----------------------------------------------------------------------------
+  33          // Includes
+  34          //-----------------------------------------------------------------------------
+  35          
+  36          #include "c8051f3xx.h"
+  37          #include "F3xx_USB0_InterruptServiceRoutine.h"
+  38          #include "F3xx_USB0_Mouse.h"
+  39          
+  40          
+  41          extern void Sequence(void);
+  42          
+  43          //-----------------------------------------------------------------------------
+  44          // Main Routine
+  45          //-----------------------------------------------------------------------------
+  46          void main(void)
+  47          {
+  48   1              System_Init ();
+  49   1      
+  50   1              EA = 1;
+  51   1              while (1)
+  52   1              {
+  53   2                      Sequence();
+  54   2              }
+  55   1      }
+C51 COMPILER V7.20   F3XX_USB0_MAIN                                                        06/11/2009 12:00:42 PAGE 2   
+
+  56          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     11    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

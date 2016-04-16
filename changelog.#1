@@ -1,0 +1,64 @@
+V1.0
+- Basic mouse function
+- CPI Changing with LED status
+
+
+V1.1
+- Update SROM to ANDS9500_SROM_82
+- Decrease global interrupt timer to 0.5ms.
+- Decrease switch debouncing to total 1.0ms
+- Decrease motion burst delay
+- Increase CPI store to eeprom delay to 2.0s
+- Disable CPI changing sequence 100 and 110 (CPI switch cannot be pressed together in this case)
+
+
+v1.2
+- Update SROM to ADNS9500_SROM_83
+- Add in code to set lift detection
+
+
+v2.5
+- Add in EFTB monitoring
+
+
+v2.5.1
+- Modified from v2.5
+- Ammended SPI R/W & SROM Download Seq timing frame.
+- Update SROM to ADNS9500_SROM_8B
+
+
+v2.5.2	
+- Modified from v2.5.1
+- Update SROM to ADNS9500_SROM_8C
+- solve unhandle Configuration I register in EEPROM setting saving.
+
+
+v2.5.3
+- Modified from v2.5.2
+- Update SROM to ADNS9500_SROM_8E
+- CPI resolution added 1 more step from original 0x37 to 0x38.
+
+
+v2.5.4
+- Modified from v2.5.3
+- change the watchdog reload time from 30ms to 15ms.	
+
+
+v2.6
+- Modified from v2.5
+- Update SROM to ANDS9500_SROM_89
+- Add-in Image Dump Feature
+
+
+v2.7
+- Modified from v2.6
+- Add-in SROM Download Feature (Only for MCU c8051f347)
+
+
+v2.8
+- Merge v2.5.4 and v2.7
+- SROM ID : 8C & 8D - laser registers, 0x20, 0x21, 0x22 and 0x23 are enabled with full read/write access
+
+
+
+

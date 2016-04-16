@@ -1,0 +1,298 @@
+C51 COMPILER V7.20   SPI                                                                   06/11/2009 12:00:43 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE SPI
+OBJECT MODULE PLACED IN spi.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe spi.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          //------------------------------------------------------------------------------------
+   2          // Includes
+   3          //------------------------------------------------------------------------------------
+   4          #include "c8051f3xx.h"
+   5          #include "spi.h"
+   6          #include "delay.h"
+   7          
+   8          
+   9          //------------------------------------------------------------------------------------
+  10          // Global VARIABLES
+  11          //------------------------------------------------------------------------------------
+  12          bdata unsigned char dummy_bit;
+  13          sbit dummy_bit7 = dummy_bit^7;
+  14          sbit dummy_bit6 = dummy_bit^6;
+  15          sbit dummy_bit5 = dummy_bit^5;
+  16          sbit dummy_bit4 = dummy_bit^4;
+  17          sbit dummy_bit3 = dummy_bit^3;
+  18          sbit dummy_bit2 = dummy_bit^2;
+  19          sbit dummy_bit1 = dummy_bit^1;
+  20          sbit dummy_bit0 = dummy_bit^0;
+  21          
+  22          
+  23          //------------------------------------------------------------------------------------
+  24          // Function PROTOTYPES
+  25          //------------------------------------------------------------------------------------
+  26          void spi_init(void);
+  27          //unsigned char spi_read_byte(void);
+  28          //void spi_write_byte(unsigned char data_in);
+  29          unsigned char spi_transfer(unsigned char data_in);
+  30          unsigned char spi_read_eeprom(unsigned int addr);
+  31          void spi_write_eeprom(unsigned int addr, unsigned char data_in);
+  32          unsigned char spi_read_sensor(unsigned char addr);
+  33          void spi_write_sensor(unsigned char addr, unsigned char data_in);
+  34          
+  35          
+  36          //------------------------------------------------------------------------------------
+  37          // InitSeq
+  38          //------------------------------------------------------------------------------------
+  39          void spi_init(void)
+  40          {
+  41   1              EA = 0;
+  42   1              NCS = 1;
+  43   1              SCLK = 1;
+  44   1              MISO = 1;
+  45   1              MOSI = 1;
+  46   1              EE_NCS = 1;
+  47   1          P0MDOUT   = 0x5A;
+  48   1              EA = 1;
+  49   1      }
+  50          
+  51          
+  52          //------------------------------------------------------------------------------------
+  53          // Functions
+  54          //------------------------------------------------------------------------------------
+  55          /*
+C51 COMPILER V7.20   SPI                                                                   06/11/2009 12:00:43 PAGE 2   
+
+  56          unsigned char spi_read_byte(void)
+  57          {
+  58                  SCLK = 0;       delay1();
+  59                  SCLK = 1;       delay1();
+  60                  dummy_bit7 = MISO;
+  61          
+  62                  SCLK = 0;       delay1();
+  63                  SCLK = 1;       delay1();
+  64                  dummy_bit6 = MISO;
+  65          
+  66                  SCLK = 0;       delay1();
+  67                  SCLK = 1;       delay1();
+  68                  dummy_bit5 = MISO;
+  69          
+  70                  SCLK = 0;       delay1();
+  71                  SCLK = 1;       delay1();
+  72                  dummy_bit4 = MISO;
+  73                  
+  74                  SCLK = 0;       delay1();
+  75                  SCLK = 1;       delay1();
+  76                  dummy_bit3 = MISO;
+  77          
+  78                  SCLK = 0;       delay1();
+  79                  SCLK = 1;       delay1();
+  80                  dummy_bit2 = MISO;
+  81          
+  82                  SCLK = 0;       delay1();
+  83                  SCLK = 1;       delay1();
+  84                  dummy_bit1 = MISO;
+  85          
+  86                  SCLK = 0;       delay1();
+  87                  SCLK = 1;       delay1();
+  88                  dummy_bit0 = MISO;
+  89          
+  90                  return dummy_bit;
+  91          }
+  92          */
+  93          
+  94          
+  95          /*
+  96          void spi_write_byte(unsigned char data_in)
+  97          {
+  98          //      P0MDOUT |= 0x08;
+  99                  dummy_bit = data_in;
+ 100                  
+ 101                  SCLK = 0;
+ 102                  MOSI = dummy_bit7;      delay1();
+ 103                  SCLK = 1;       delay1();
+ 104          
+ 105                  SCLK = 0;
+ 106                  MOSI = dummy_bit6;      delay1();
+ 107                  SCLK = 1;       delay1();
+ 108          
+ 109                  SCLK = 0;
+ 110                  MOSI = dummy_bit5;      delay1();
+ 111                  SCLK = 1;       delay1();
+ 112          
+ 113                  SCLK = 0;
+ 114                  MOSI = dummy_bit4;      delay1();
+ 115                  SCLK = 1;       delay1();
+ 116          
+ 117                  SCLK = 0;
+C51 COMPILER V7.20   SPI                                                                   06/11/2009 12:00:43 PAGE 3   
+
+ 118                  MOSI = dummy_bit3;      delay1();
+ 119                  SCLK = 1;       delay1();
+ 120          
+ 121                  SCLK = 0;
+ 122                  MOSI = dummy_bit2;      delay1();
+ 123                  SCLK = 1;       delay1();
+ 124          
+ 125                  SCLK = 0;
+ 126                  MOSI = dummy_bit1;      delay1();
+ 127                  SCLK = 1;       delay1();
+ 128          
+ 129                  SCLK = 0;
+ 130                  MOSI = dummy_bit0;      delay1();
+ 131                  SCLK = 1;       delay1();
+ 132          
+ 133          //      P0MDOUT &= ~0x08;
+ 134                  MOSI = 1;
+ 135          }
+ 136          */
+ 137          
+ 138          
+ 139          unsigned char spi_transfer(unsigned char data_in)
+ 140          {
+ 141   1              dummy_bit = data_in;
+ 142   1              MOSI = dummy_bit7;
+ 143   1              SCLK = 0;       delay1();
+ 144   1              SCLK = 1;       delay1();
+ 145   1              dummy_bit7 = MISO;
+ 146   1      
+ 147   1              MOSI = dummy_bit6;
+ 148   1              SCLK = 0;       delay1();
+ 149   1              SCLK = 1;       delay1();
+ 150   1              dummy_bit6 = MISO;
+ 151   1      
+ 152   1              MOSI = dummy_bit5;
+ 153   1              SCLK = 0;       delay1();
+ 154   1              SCLK = 1;       delay1();
+ 155   1              dummy_bit5 = MISO;
+ 156   1      
+ 157   1              MOSI = dummy_bit4;
+ 158   1              SCLK = 0;       delay1();
+ 159   1              SCLK = 1;       delay1();
+ 160   1              dummy_bit4 = MISO;
+ 161   1      
+ 162   1              MOSI = dummy_bit3;
+ 163   1              SCLK = 0;       delay1();
+ 164   1              SCLK = 1;       delay1();
+ 165   1              dummy_bit3 = MISO;
+ 166   1      
+ 167   1              MOSI = dummy_bit2;
+ 168   1              SCLK = 0;       delay1();
+ 169   1              SCLK = 1;       delay1();
+ 170   1              dummy_bit2 = MISO;
+ 171   1      
+ 172   1              MOSI = dummy_bit1;
+ 173   1              SCLK = 0;       delay1();
+ 174   1              SCLK = 1;       delay1();
+ 175   1              dummy_bit1 = MISO;
+ 176   1      
+ 177   1              MOSI = dummy_bit0;
+ 178   1              SCLK = 0;       delay1();
+ 179   1              SCLK = 1;       delay1();
+C51 COMPILER V7.20   SPI                                                                   06/11/2009 12:00:43 PAGE 4   
+
+ 180   1              dummy_bit0 = MISO;
+ 181   1      
+ 182   1              return dummy_bit;
+ 183   1      }
+ 184          
+ 185          
+ 186          unsigned char spi_read_eeprom(unsigned int addr)
+ 187          {
+ 188   1              unsigned char temp;
+ 189   1              EE_NCS = 0;
+ 190   1              if((addr & 0x0100) == 0x0100)
+ 191   1              {
+ 192   2                      temp = (READ_DATA | 0x08);
+ 193   2              }
+ 194   1              else
+ 195   1              {
+ 196   2                      temp = READ_DATA;
+ 197   2              }
+ 198   1              spi_transfer(temp);
+ 199   1              spi_transfer((unsigned char)addr);
+ 200   1              temp = spi_transfer(0xff);
+ 201   1              EE_NCS = 1;
+ 202   1      
+ 203   1              return temp;
+ 204   1      }
+ 205          
+ 206          
+ 207          void spi_write_eeprom(unsigned int addr, unsigned char data_in)
+ 208          {
+ 209   1              unsigned char temp;
+ 210   1      
+ 211   1              EE_NCS = 0;
+ 212   1              delay1();
+ 213   1              spi_transfer(WRITE_ENABLE);
+ 214   1              EE_NCS = 1;
+ 215   1      
+ 216   1              delay_us(300);
+ 217   1      
+ 218   1              EE_NCS = 0;
+ 219   1              delay1();
+ 220   1              if((addr & 0x0100) == 0x0100)
+ 221   1              {
+ 222   2                      temp = (WRITE_DATA | 0x08);
+ 223   2              }
+ 224   1              else
+ 225   1              {
+ 226   2                      temp = WRITE_DATA;
+ 227   2              }
+ 228   1              spi_transfer(temp);
+ 229   1              delay1();
+ 230   1              spi_transfer((unsigned char)addr);
+ 231   1              delay1();
+ 232   1              spi_transfer(data_in);
+ 233   1              delay1();
+ 234   1              EE_NCS = 1;
+ 235   1      }
+ 236          
+ 237          
+ 238          unsigned char spi_read_sensor(unsigned char addr)
+ 239          {
+ 240   1              unsigned char temp;
+ 241   1              NCS = 0;
+C51 COMPILER V7.20   SPI                                                                   06/11/2009 12:00:43 PAGE 5   
+
+ 242   1              delay1();
+ 243   1              spi_transfer(addr);
+ 244   1              delay_us(100);
+ 245   1              temp = spi_transfer(0xff);
+ 246   1              delay_us(120);
+ 247   1              NCS = 1;
+ 248   1      
+ 249   1              return temp;
+ 250   1      }
+ 251          
+ 252          
+ 253          void spi_write_sensor(unsigned char addr, unsigned char data_in)
+ 254          {
+ 255   1              NCS = 0;
+ 256   1              delay1();
+ 257   1              spi_transfer(addr | 0x80);
+ 258   1              delay_us(50);
+ 259   1              spi_transfer(data_in);
+ 260   1              delay_us(30);
+ 261   1              NCS = 1;
+ 262   1      }
+ 263          
+ 264          
+ 265          
+ 266          
+ 267          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    444    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     12    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

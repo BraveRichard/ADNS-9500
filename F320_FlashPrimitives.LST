@@ -1,0 +1,205 @@
+C51 COMPILER V7.20   F320_FLASHPRIMITIVES                                                  09/30/2008 09:39:49 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE F320_FLASHPRIMITIVES
+OBJECT MODULE PLACED IN F320_FlashPrimitives.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe F320_FlashPrimitives.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          //-----------------------------------------------------------------------------
+   2          // F340_FlashPrimitives.c
+   3          //-----------------------------------------------------------------------------
+   4          // Copyright 2006 Silicon Laboratories, Inc.
+   5          // http://www.silabs.com
+   6          //
+   7          // Program Description:
+   8          //
+   9          // This program contains several useful utilities for writing and updating
+  10          // FLASH memory.
+  11          //
+  12          // FID:            34X000024
+  13          // Target:         C8051F34x
+  14          // Tool chain:     Keil C51 8.00 / Keil EVAL C51
+  15          // Command Line:   None
+  16          //
+  17          // Release 1.0
+  18          //    -Initial Revision (GP)
+  19          //    -30 JAN 2006
+  20          //
+  21          
+  22          //-----------------------------------------------------------------------------
+  23          // Includes
+  24          //-----------------------------------------------------------------------------
+  25          #include <c8051F3xx.h>
+  26          #include "F340_FlashPrimitives.h"
+  27          
+  28          
+  29          //-----------------------------------------------------------------------------
+  30          // Structures, Unions, Enumerations, and Type Definitions
+  31          //-----------------------------------------------------------------------------
+  32          
+  33          //-----------------------------------------------------------------------------
+  34          // Global Constants
+  35          //-----------------------------------------------------------------------------
+  36          
+  37          //-----------------------------------------------------------------------------
+  38          // Function Prototypes
+  39          //-----------------------------------------------------------------------------
+  40          
+  41          // FLASH read/write/erase routines
+  42          void FLASH_ByteWrite (FLADDR addr, char byte);
+  43          unsigned char FLASH_ByteRead (FLADDR addr);
+  44          void FLASH_PageErase (FLADDR addr);
+  45          
+  46          //-----------------------------------------------------------------------------
+  47          // Global Variables
+  48          //-----------------------------------------------------------------------------
+  49          
+  50          //-----------------------------------------------------------------------------
+  51          // FLASH Routines
+  52          //-----------------------------------------------------------------------------
+  53          
+  54          //-----------------------------------------------------------------------------
+  55          // FLASH_ByteWrite
+C51 COMPILER V7.20   F320_FLASHPRIMITIVES                                                  09/30/2008 09:39:49 PAGE 2   
+
+  56          //-----------------------------------------------------------------------------
+  57          //
+  58          // Return Value : None
+  59          // Parameters   : 
+  60          //   1)  FLADDR addr - target address to write to
+  61          //                     range is 0 to (FLASH_TEMP-1)
+  62          //   2)  char byte   - byte to write
+  63          //
+  64          // This routine writes <byte> to the linear FLASH address <addr>.
+  65          //
+  66          //-----------------------------------------------------------------------------
+  67          void FLASH_ByteWrite (FLADDR addr, char byte)
+  68          {
+  69   1         bit EA_SAVE = EA;                   // preserve EA
+  70   1         char xdata * data pwrite;           // FLASH write pointer
+  71   1      
+  72   1         EA = 0;                             // Disable interrupts
+  73   1      
+  74   1         // change clock speed to slow, then restore later
+  75   1      
+  76   1         VDM0CN = 0x80;                      // Enable VDD monitor
+  77   1      
+  78   1      
+  79   1         RSTSRC = 0x02;                      // Enable VDD monitor as a reset source
+  80   1      
+  81   1         pwrite = (char xdata *) addr;
+  82   1      
+  83   1         FLKEY  = 0xA5;                      // Key Sequence 1
+  84   1         FLKEY  = 0xF1;                      // Key Sequence 2
+  85   1         PSCTL |= 0x01;                      // PSWE = 1
+  86   1      
+  87   1      
+  88   1         VDM0CN = 0x80;                      // Enable VDD monitor
+  89   1      
+  90   1      
+  91   1         RSTSRC = 0x02;                      // Enable VDD monitor as a reset source
+  92   1      
+  93   1         *pwrite = byte;                     // Write the byte
+  94   1      
+  95   1         PSCTL &= ~0x01;                     // PSWE = 0
+  96   1      
+  97   1         EA = EA_SAVE;                       // restore interrupts
+  98   1      }
+  99          
+ 100          //-----------------------------------------------------------------------------
+ 101          // FLASH_ByteRead
+ 102          //-----------------------------------------------------------------------------
+ 103          //
+ 104          // Return Value : 
+ 105          //   1)  unsigned char  - byte that was read from Flash
+ 106          // Parameters   : 
+ 107          //   1)  FLADDR addr    - target address to write to
+ 108          //                        range is 0 to (FLASH_TEMP-1)
+ 109          //
+ 110          // This routine reads a <byte> from the linear FLASH address <addr>.
+ 111          //
+ 112          //-----------------------------------------------------------------------------
+ 113          unsigned char FLASH_ByteRead (FLADDR addr)
+ 114          {
+ 115   1         bit EA_SAVE = EA;                   // preserve EA
+ 116   1         char code * data pread;             // FLASH read pointer
+ 117   1         unsigned char byte;
+C51 COMPILER V7.20   F320_FLASHPRIMITIVES                                                  09/30/2008 09:39:49 PAGE 3   
+
+ 118   1      
+ 119   1         EA = 0;                             // Disable interrupts
+ 120   1      
+ 121   1         pread = (char code *) addr;
+ 122   1      
+ 123   1         byte = *pread;                      // Read the byte
+ 124   1      
+ 125   1         EA = EA_SAVE;                       // Restore interrupts
+ 126   1      
+ 127   1         return byte;
+ 128   1      }
+ 129          
+ 130          //-----------------------------------------------------------------------------
+ 131          // FLASH_PageErase
+ 132          //-----------------------------------------------------------------------------
+ 133          //
+ 134          // Return Value : None
+ 135          // Parameters   : 
+ 136          //   1)  FLADDR addr    - target address to write to
+ 137          //                        range is 0 to (FLASH_TEMP-1)
+ 138          //
+ 139          // This routine erases the FLASH page containing the linear FLASH address
+ 140          // <addr>.
+ 141          //
+ 142          //-----------------------------------------------------------------------------
+ 143          void FLASH_PageErase (FLADDR addr)
+ 144          {
+ 145   1         bit EA_SAVE = EA;                   // preserve EA
+ 146   1         char xdata * data pwrite;           // FLASH write pointer
+ 147   1      
+ 148   1         EA = 0;                          // Disable interrupts
+ 149   1         // change clock speed to slow, then restore later
+ 150   1      
+ 151   1         VDM0CN = 0x80;                      // Enable VDD monitor
+ 152   1      
+ 153   1      
+ 154   1         RSTSRC = 0x02;                      // Enable VDD monitor as a reset source
+ 155   1      
+ 156   1         pwrite = (char xdata *) addr;
+ 157   1      
+ 158   1         FLKEY  = 0xA5;                      // Key Sequence 1
+ 159   1         FLKEY  = 0xF1;                      // Key Sequence 2
+ 160   1         PSCTL |= 0x03;                      // PSWE = 1; PSEE = 1
+ 161   1      
+ 162   1      
+ 163   1         VDM0CN = 0x80;                      // Enable VDD monitor
+ 164   1      
+ 165   1      
+ 166   1         RSTSRC = 0x02;                      // Enable VDD monitor as a reset source
+ 167   1         *pwrite = 0;                        // Initiate page erase
+ 168   1      
+ 169   1         PSCTL &= ~0x03;                     // PSWE = 0; PSEE = 0
+ 170   1      
+ 171   1         EA = EA_SAVE;                    // Restore interrupts
+ 172   1      }
+ 173          
+ 174          //-----------------------------------------------------------------------------
+ 175          // End Of File
+ 176          //-----------------------------------------------------------------------------
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V7.20   F320_FLASHPRIMITIVES                                                  09/30/2008 09:39:49 PAGE 4   
+
+   CODE SIZE        =    192    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

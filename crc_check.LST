@@ -1,0 +1,62 @@
+C51 COMPILER V7.20   CRC_CHECK                                                             06/11/2009 12:00:43 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE CRC_CHECK
+OBJECT MODULE PLACED IN crc_check.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe crc_check.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          
+   2          //------------------------------------------------------------------------------------
+   3          // Global VARIABLES
+   4          //------------------------------------------------------------------------------------
+   5          unsigned char crc_return;
+   6          
+   7          
+   8          //------------------------------------------------------------------------------------
+   9          // Function PROTOTYPES
+  10          //------------------------------------------------------------------------------------
+  11          unsigned char Eight_Bit_CRC(unsigned char crc, unsigned char byte_in);
+  12          
+  13          
+  14          //------------------------------------------------------------------------------------
+  15          // Function 
+  16          //------------------------------------------------------------------------------------
+  17          // 8 bits crc calculation. Initial value is 0.
+  18          // polynomial = X8 + X5 + X4 + 1
+  19          // data is an 8 bit number; crc is a 8 bit number
+  20          unsigned char Eight_Bit_CRC(unsigned char crc, unsigned char byte_in)
+  21          { 
+  22   1              unsigned char index; // shift counter
+  23   1              unsigned char fb;
+  24   1              
+  25   1              index = 8; // initialise the shift counter
+  26   1              do
+  27   1              { 
+  28   2                      fb = (crc ^ byte_in) & 0x01;
+  29   2                      byte_in >>= 1;
+  30   2                      crc >>= 1;
+  31   2                      
+  32   2                      if(fb)
+  33   2                      { 
+  34   3                              crc ^= 0x8c;
+  35   3                      }
+  36   2              } while(--index);
+  37   1              
+  38   1              return crc;
+  39   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    104    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      5    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

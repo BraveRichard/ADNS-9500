@@ -1,0 +1,83 @@
+C51 COMPILER V7.20   DELAY                                                                 06/11/2009 12:00:43 PAGE 1   
+
+
+C51 COMPILER V7.20, COMPILATION OF MODULE DELAY
+OBJECT MODULE PLACED IN delay.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.exe delay.c DB OE LARGE OT(0,SPEED)
+
+line level    source
+
+   1          //------------------------------------------------------------------------------------
+   2          // Includes
+   3          //------------------------------------------------------------------------------------
+   4          #include "c8051f3xx.h"
+   5          #include <intrins.h>
+   6          
+   7          
+   8          //------------------------------------------------------------------------------------
+   9          // Function PROTOTYPES
+  10          //------------------------------------------------------------------------------------
+  11          void delay_us(unsigned char delay);
+  12          void delay_ms(unsigned char delay);
+  13          void delay1(void);
+  14          
+  15          
+  16          //------------------------------------------------------------------------------------
+  17          // Function 
+  18          //------------------------------------------------------------------------------------
+  19          void delay_us(unsigned char delay)
+  20          {
+  21   1              for(;delay > 0; delay--);
+  22   1      }
+  23          
+  24          
+  25          void delay_ms(unsigned char delay)
+  26          {
+  27   1              for(;delay > 0; delay--)
+  28   1              {
+  29   2                      delay_us(100);
+  30   2                      delay_us(100);
+  31   2                      delay_us(100);
+  32   2                      delay_us(100);
+  33   2                      delay_us(100);
+  34   2                      delay_us(100);
+  35   2                      delay_us(100);
+  36   2                      delay_us(100);
+  37   2              }
+  38   1      }
+  39          
+  40          
+  41          void delay1(void)
+  42          {
+  43   1              _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_();
+  44   1              _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_();
+  45   1              _nop_(); _nop_(); _nop_(); _nop_();     
+  46   1              //1us
+  47   1      
+  48   1              _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_(); _nop_(); _nop_(); _nop_(); _nop_();
+  49   1              _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_();
+  50   1              _nop_(); _nop_(); _nop_(); _nop_();     
+  51   1              //2us
+  52   1      
+  53   1              _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_();
+  54   1              _nop_(); _nop_(); _nop_(); _nop_();     _nop_(); _nop_(); _nop_(); _nop_(); _nop_(); _nop_(); 
+  55   1              _nop_(); _nop_(); _nop_(); _nop_();     
+C51 COMPILER V7.20   DELAY                                                                 06/11/2009 12:00:43 PAGE 2   
+
+  56   1              //3us
+  57   1      }
+  58          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    163    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      2    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
